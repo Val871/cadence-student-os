@@ -1,0 +1,3331 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head><script data-tmly-media-guard="1">(function(){"use strict";
+var T=window.__tmly||(window.__tmly=(function(){
+var o={},n=String(window.name||"");
+if(n.slice(0,5)==="tmly:"){n.slice(5).split("&").forEach(function(kv){
+var i=kv.indexOf("=");if(i>0){o[kv.slice(0,i)]=kv.slice(i+1)}})}
+return o})());
+if(T.presentation!=="preview"){return}
+var K="tmly:media-muted:"+String(location.pathname).replace(/[^/]*$/,"");
+var muted=false;try{muted=localStorage.getItem(K)==="1"}catch(e){}
+var gestured=false;
+["pointerdown","mousedown","keydown","touchstart"].forEach(function(t){
+document.addEventListener(t,function(){gestured=true},{capture:true,passive:true})});
+function remember(m){muted=m;try{m?localStorage.setItem(K,"1"):localStorage.removeItem(K)}catch(e){}}
+function announcePaused(el){try{el.dispatchEvent(new Event("pause"))}catch(e){}}
+function harden(el){
+el.autoplay=false;el.removeAttribute("autoplay");
+if(el.getAttribute("preload")==="auto"){el.setAttribute("preload","none")}
+if(muted){el.muted=true}
+if(!gestured&&!el.paused){try{el.pause()}catch(e){}}}
+var play=HTMLMediaElement.prototype.play;
+HTMLMediaElement.prototype.play=function(){
+if(!gestured){announcePaused(this);
+return Promise.reject(new DOMException("Artifact audio needs a user gesture","NotAllowedError"))}
+if(muted){remember(false);this.muted=false}
+return play.apply(this,arguments)};
+var acProtos=[];
+function guardAC(n){
+var N=window[n];if(!N||!N.prototype){return}
+if(acProtos.indexOf(N.prototype)<0){acProtos.push(N.prototype);
+var res=N.prototype.resume;
+if(typeof res==="function"){N.prototype.resume=function(){
+if(!gestured){return Promise.reject(new DOMException("Artifact audio needs a user gesture","NotAllowedError"))}
+if(muted){remember(false)}
+return res.apply(this,arguments)}}}
+var W=function(o){var c=arguments.length?new N(o):new N();
+if(!gestured){try{c.suspend()}catch(e){}}return c};
+W.prototype=N.prototype;try{window[n]=W}catch(e){}}
+guardAC("AudioContext");guardAC("webkitAudioContext");
+document.addEventListener("play",function(e){
+var el=e.target;if(el instanceof HTMLMediaElement&&!gestured){try{el.pause()}catch(err){}}},true);
+document.addEventListener("pause",function(e){
+if(e.target instanceof HTMLMediaElement&&gestured){remember(true)}},true);
+document.addEventListener("volumechange",function(e){
+var el=e.target;if(el instanceof HTMLMediaElement&&gestured){remember(el.muted||el.volume===0)}},true);
+function sweep(n){if(n&&n.querySelectorAll){var l=n.querySelectorAll("audio,video");
+for(var i=0;i<l.length;i++){harden(l[i])}}}
+new MutationObserver(function(rs){for(var i=0;i<rs.length;i++){var a=rs[i].addedNodes;
+for(var j=0;j<a.length;j++){var n=a[j];
+if(n instanceof HTMLMediaElement){harden(n)}else{sweep(n)}}}})
+.observe(document.documentElement,{childList:true,subtree:true});
+document.addEventListener("DOMContentLoaded",function(){sweep(document)});
+sweep(document)})();</script>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#0d6b59">
+<meta name="description" content="Cadence — a single-file student productivity workspace: daily planning, spaced repetition, lecture notes, assignments, Pomodoro focus, file naming, weekly review and GPA tracking. All data stays in your browser.">
+<title>Cadence — Student OS</title>
+<style>
+/* ---------- tokens ---------- */
+:root{
+  --bg:#f5f2ea; --surface:#fffdf8; --surface-2:#efeade; --surface-3:#e8e2d4;
+  --ink:#132622; --ink-2:#2c423c; --muted:#647a72; --line:#ddd6c6; --line-2:#cbc3b0;
+  --primary:#0d6b59; --primary-2:#0a5446; --primary-soft:#dcefe8;
+  --accent:#c25e1d; --accent-soft:#f8e6d3;
+  --danger:#a8332a; --danger-soft:#f7deda;
+  --ok:#1d7a4c; --ok-soft:#ddefe4;
+  --warn:#9a6a10; --warn-soft:#f8eed2;
+  --shadow:0 1px 2px rgba(19,38,34,.05),0 12px 30px -22px rgba(19,38,34,.5);
+  --r:16px; --r-sm:10px; --r-xs:7px;
+  --side:264px;
+}
+[data-theme="dark"]{
+  --bg:#0b1513; --surface:#12201d; --surface-2:#182a26; --surface-3:#20342f;
+  --ink:#e9f0ec; --ink-2:#cfe0d9; --muted:#93aaa2; --line:#27403a; --line-2:#345049;
+  --primary:#43c4a2; --primary-2:#6ad9bb; --primary-soft:#123a30;
+  --accent:#e8964f; --accent-soft:#382514;
+  --danger:#e07a6c; --danger-soft:#3a1f1b;
+  --ok:#5fc98e; --ok-soft:#12301f;
+  --warn:#e0b256; --warn-soft:#332915;
+  --shadow:0 1px 2px rgba(0,0,0,.4),0 14px 34px -22px rgba(0,0,0,.9);
+}
+*{box-sizing:border-box}
+html{-webkit-text-size-adjust:100%}
+body{margin:0;background:var(--bg);color:var(--ink);overflow-x:hidden;
+  font:16px/1.55 ui-sans-serif,-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,system-ui,sans-serif;
+  -webkit-font-smoothing:antialiased;text-rendering:optimizeLegibility}
+h1,h2,h3,h4{font-family:Georgia,"Iowan Old Style","Palatino Linotype","Times New Roman",serif;
+  font-weight:600;letter-spacing:-.012em;line-height:1.22;margin:0;color:var(--ink)}
+p{margin:0 0 .7em}
+button,input,select,textarea{font:inherit;color:inherit}
+button{cursor:pointer;border:0;background:none}
+a{color:var(--primary);text-underline-offset:2px}
+:focus-visible{outline:2px solid var(--primary);outline-offset:2px;border-radius:4px}
+svg{display:block}
+.hide{display:none !important}
+.muted{color:var(--muted)}
+.small{font-size:.855rem}
+.tiny{font-size:.78rem}
+.center{text-align:center}
+.nowrap{white-space:nowrap}
+hr{border:0;border-top:1px solid var(--line);margin:18px 0}
+
+/* ---------- top bar ---------- */
+.topbar{position:sticky;top:0;z-index:40;display:flex;align-items:center;gap:10px;
+  height:58px;padding:0 12px;padding-top:env(safe-area-inset-top);
+  background:color-mix(in srgb,var(--surface) 88%,transparent);
+  backdrop-filter:saturate(1.4) blur(10px);border-bottom:1px solid var(--line)}
+@supports not (background:color-mix(in srgb,red,blue)){.topbar{background:var(--surface)}}
+.brand{display:flex;align-items:center;gap:9px;min-width:0}
+.mark{width:30px;height:30px;border-radius:9px;background:var(--primary);display:grid;place-items:center;flex:0 0 auto}
+.mark svg{width:18px;height:18px;stroke:#fff}
+[data-theme="dark"] .mark svg{stroke:#07201a}
+.brand b{font-family:Georgia,serif;font-size:1.06rem;letter-spacing:-.01em;white-space:nowrap}
+.brand span{display:none;color:var(--muted);font-size:.72rem;white-space:nowrap}
+.topbar .spacer{flex:1}
+.tb-date{display:none;font-size:.8rem;color:var(--muted);white-space:nowrap}
+.icon-btn{width:40px;height:40px;border-radius:10px;display:grid;place-items:center;color:var(--ink-2);
+  border:1px solid transparent}
+.icon-btn:hover{background:var(--surface-2);border-color:var(--line)}
+.icon-btn svg{width:20px;height:20px;stroke:currentColor;fill:none;stroke-width:1.9;stroke-linecap:round;stroke-linejoin:round}
+.menu-btn{display:grid}
+
+/* ---------- sidebar ---------- */
+.sidebar{position:fixed;top:0;left:0;z-index:60;width:var(--side);height:100%;
+  height:100dvh;background:var(--surface);border-right:1px solid var(--line);
+  display:flex;flex-direction:column;transform:translateX(-102%);
+  transition:transform .26s cubic-bezier(.4,0,.2,1);will-change:transform}
+.sidebar.open{transform:translateX(0);box-shadow:0 0 60px rgba(0,0,0,.28)}
+.side-head{display:flex;align-items:center;gap:10px;padding:16px 16px 12px}
+.side-head b{font-family:Georgia,serif;font-size:1.18rem}
+.side-head .x{margin-left:auto}
+.side-sub{padding:0 18px 12px;color:var(--muted);font-size:.74rem;letter-spacing:.09em;text-transform:uppercase}
+.side-nav{flex:1;overflow-y:auto;padding:4px 10px 12px;scrollbar-width:thin}
+.nav-group{padding:12px 8px 6px;font-size:.68rem;letter-spacing:.1em;text-transform:uppercase;color:var(--muted)}
+.nav-item{display:flex;align-items:center;gap:11px;width:100%;padding:9px 10px;border-radius:10px;
+  color:var(--ink-2);text-align:left;font-size:.925rem;min-height:42px;position:relative}
+.nav-item svg{width:19px;height:19px;stroke:currentColor;fill:none;stroke-width:1.75;
+  stroke-linecap:round;stroke-linejoin:round;flex:0 0 auto;opacity:.85}
+.nav-item:hover{background:var(--surface-2)}
+.nav-item.active{background:var(--primary-soft);color:var(--primary-2);font-weight:600}
+[data-theme="dark"] .nav-item.active{color:var(--primary-2)}
+.nav-item.active svg{opacity:1}
+.nav-item .cnt{margin-left:auto;font-size:.72rem;font-weight:700;background:var(--accent);color:#fff;
+  border-radius:999px;padding:1px 6px;min-width:19px;text-align:center;line-height:1.55}
+[data-theme="dark"] .nav-item .cnt{color:#1b1004}
+.side-foot{padding:12px;border-top:1px solid var(--line);font-size:.76rem;color:var(--muted)}
+.side-foot .dot{display:inline-block;width:7px;height:7px;border-radius:50%;background:var(--ok);margin-right:6px}
+.scrim{position:fixed;inset:0;z-index:55;background:rgba(9,20,17,.45);opacity:0;pointer-events:none;
+  transition:opacity .22s}
+.scrim.on{opacity:1;pointer-events:auto}
+
+/* ---------- main ---------- */
+.main{padding-bottom:56px;min-height:70vh}
+.wrap{max-width:1120px;margin:0 auto;padding:20px 14px 8px}
+.view{display:none;animation:fade .22s ease both}
+.view.active{display:block}
+@keyframes fade{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:none}}
+.view-h{display:flex;flex-wrap:wrap;align-items:flex-end;gap:10px;margin-bottom:16px}
+.view-h h1{font-size:clamp(1.5rem,4.4vw,2rem)}
+.view-h .sub{color:var(--muted);font-size:.86rem;flex-basis:100%;margin-top:-2px}
+.view-h .hact{margin-left:auto;display:flex;gap:8px;flex-wrap:wrap}
+
+/* ---------- cards / layout ---------- */
+.card{background:var(--surface);border:1px solid var(--line);border-radius:var(--r);padding:16px;
+  box-shadow:var(--shadow);margin-bottom:14px}
+.card.tight{padding:13px}
+.card-h{display:flex;align-items:center;gap:10px;margin-bottom:12px;flex-wrap:wrap}
+.card-h h2{font-size:1.02rem}
+.card-h .hact{margin-left:auto;display:flex;gap:6px;flex-wrap:wrap}
+.grid{display:grid;gap:12px;grid-template-columns:repeat(auto-fit,minmax(210px,1fr))}
+.grid.two{grid-template-columns:repeat(auto-fit,minmax(260px,1fr))}
+.split{display:grid;gap:14px;grid-template-columns:1fr}
+.row{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+.row.between{justify-content:space-between}
+.stack{display:flex;flex-direction:column;gap:10px}
+
+/* ---------- buttons ---------- */
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:7px;
+  min-height:42px;padding:9px 14px;border-radius:10px;border:1px solid var(--line-2);
+  background:var(--surface);color:var(--ink);font-size:.9rem;font-weight:500;
+  transition:background .14s,border-color .14s,transform .06s;white-space:nowrap}
+.btn:hover{background:var(--surface-2)}
+.btn:active{transform:scale(.985)}
+.btn svg{width:17px;height:17px;stroke:currentColor;fill:none;stroke-width:1.9;stroke-linecap:round;stroke-linejoin:round}
+.btn.primary{background:var(--primary);border-color:var(--primary);color:#fff;font-weight:600}
+.btn.primary:hover{background:var(--primary-2);border-color:var(--primary-2)}
+[data-theme="dark"] .btn.primary{color:#06231c}
+.btn.ghost{background:transparent;border-color:transparent;color:var(--muted)}
+.btn.ghost:hover{background:var(--surface-2);color:var(--ink)}
+.btn.danger{color:var(--danger);border-color:var(--danger-soft);background:var(--danger-soft)}
+.btn.danger:hover{filter:brightness(.96)}
+.btn.accent{background:var(--accent);border-color:var(--accent);color:#fff;font-weight:600}
+[data-theme="dark"] .btn.accent{color:#1d1104}
+.btn.sm{min-height:34px;padding:5px 10px;font-size:.82rem;border-radius:8px}
+.btn.sm svg{width:15px;height:15px}
+.btn.wide{width:100%}
+.btn[disabled]{opacity:.45;pointer-events:none}
+
+/* ---------- forms ---------- */
+.field{display:flex;flex-direction:column;gap:5px;min-width:0}
+.label{font-size:.73rem;font-weight:600;letter-spacing:.05em;text-transform:uppercase;color:var(--muted)}
+input[type=text],input[type=number],input[type=date],input[type=time],input[type=search],input[type=url],select,textarea{
+  width:100%;min-height:42px;padding:9px 11px;border-radius:10px;border:1px solid var(--line-2);
+  background:var(--surface);color:var(--ink);font-size:.94rem;appearance:none}
+textarea{min-height:96px;resize:vertical;line-height:1.55}
+input::placeholder,textarea::placeholder{color:var(--muted);opacity:.75}
+input:focus,select:focus,textarea:focus{border-color:var(--primary);outline:none;box-shadow:0 0 0 3px var(--primary-soft)}
+select{background-image:url("data:image/svg+xml;charset=utf-8,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23647a72' stroke-width='2' stroke-linecap='round'%3E%3Cpath d='M6 9l6 6 6-6'/%3E%3C/svg%3E");
+  background-repeat:no-repeat;background-position:right 10px center;background-size:16px;padding-right:32px}
+.form-grid{display:grid;gap:10px;grid-template-columns:1fr}
+.form-grid .span2{grid-column:1/-1}
+.inline-form{display:grid;gap:9px;grid-template-columns:1fr}
+.check{display:inline-flex;align-items:center;gap:8px;font-size:.88rem;min-height:34px;cursor:pointer}
+input[type=checkbox]{width:19px;height:19px;accent-color:var(--primary);flex:0 0 auto;margin:0}
+
+/* ---------- chips / badges ---------- */
+.chip{display:inline-flex;align-items:center;gap:5px;padding:2px 8px;border-radius:999px;
+  font-size:.73rem;font-weight:600;letter-spacing:.01em;border:1px solid transparent;white-space:nowrap}
+.chip.hi{background:var(--danger-soft);color:var(--danger)}
+.chip.med{background:var(--warn-soft);color:var(--warn)}
+.chip.lo{background:var(--surface-2);color:var(--muted)}
+.chip.ok{background:var(--ok-soft);color:var(--ok)}
+.chip.info{background:var(--primary-soft);color:var(--primary-2)}
+[data-theme="dark"] .chip.info{color:var(--primary-2)}
+.chip.out{background:transparent;border-color:var(--line-2);color:var(--muted)}
+.pill{display:inline-block;padding:1px 7px;border-radius:6px;background:var(--surface-2);
+  font-size:.72rem;color:var(--muted);font-variant-numeric:tabular-nums}
+
+/* ---------- stats ---------- */
+.stats{display:grid;gap:10px;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));margin-bottom:14px}
+.stat{background:var(--surface);border:1px solid var(--line);border-radius:var(--r-sm);padding:12px 13px;
+  box-shadow:var(--shadow)}
+.stat .n{font-family:Georgia,serif;font-size:1.72rem;line-height:1.1;color:var(--primary-2);letter-spacing:-.02em}
+.stat .n small{font-size:.85rem;color:var(--muted);font-family:inherit;letter-spacing:0}
+.stat .l{font-size:.73rem;text-transform:uppercase;letter-spacing:.07em;color:var(--muted);margin-top:3px}
+
+/* ---------- lists ---------- */
+.list{display:flex;flex-direction:column;gap:7px}
+.item{display:flex;align-items:flex-start;flex-wrap:wrap;gap:10px;padding:10px 11px;border:1px solid var(--line);
+  border-radius:var(--r-sm);background:var(--surface);min-height:48px}
+.item:hover{border-color:var(--line-2)}
+.item.done{opacity:.58}
+.item.done .title{text-decoration:line-through;text-decoration-thickness:1px}
+.item .grow{flex:1 1 140px;min-width:0}
+.item .title{font-size:.94rem;font-weight:500;overflow-wrap:anywhere}
+.item .meta{display:flex;gap:7px;flex-wrap:wrap;align-items:center;margin-top:4px;font-size:.76rem;color:var(--muted)}
+.item.overdue{border-left:3px solid var(--danger)}
+.item.today{border-left:3px solid var(--accent)}
+.tick{width:26px;height:26px;border-radius:8px;border:1.6px solid var(--line-2);flex:0 0 auto;
+  display:grid;place-items:center;background:var(--surface);margin-top:0}
+.tick svg{width:15px;height:15px;stroke:var(--surface);fill:none;stroke-width:2.6;stroke-linecap:round;stroke-linejoin:round;opacity:0}
+.tick[aria-checked="true"]{background:var(--primary);border-color:var(--primary)}
+.tick[aria-checked="true"] svg{opacity:1;stroke:#fff}
+[data-theme="dark"] .tick[aria-checked="true"] svg{stroke:#06231c}
+.tick:hover{border-color:var(--primary)}
+del{opacity:.6}
+.empty{padding:26px 14px;text-align:center;color:var(--muted);border:1px dashed var(--line-2);
+  border-radius:var(--r-sm);font-size:.9rem;background:var(--surface-2)}
+.empty b{display:block;color:var(--ink-2);margin-bottom:3px;font-family:Georgia,serif;font-size:1.02rem}
+
+/* ---------- progress ---------- */
+.bar{height:8px;border-radius:99px;background:var(--surface-3);overflow:hidden;width:100%}
+.bar > i{display:block;height:100%;background:var(--primary);border-radius:99px;transition:width .35s ease}
+.bar.accent > i{background:var(--accent)}
+.bar.thin{height:5px}
+.track-row{display:flex;align-items:center;gap:10px;font-size:.8rem;color:var(--muted)}
+.track-row .bar{flex:1}
+
+/* ---------- segmented ---------- */
+.seg{display:inline-flex;background:var(--surface-2);border-radius:10px;padding:3px;gap:2px;flex-wrap:wrap}
+.seg button{padding:6px 11px;border-radius:7px;font-size:.83rem;color:var(--muted);min-height:32px}
+.seg button.active{background:var(--surface);color:var(--ink);box-shadow:0 1px 2px rgba(0,0,0,.08);font-weight:600}
+
+/* ---------- tables ---------- */
+.tw{overflow-x:auto;-webkit-overflow-scrolling:touch;margin:0 -4px;padding:0 4px}
+table{width:100%;border-collapse:collapse;font-size:.88rem;min-width:520px}
+th,td{padding:9px 8px;text-align:left;border-bottom:1px solid var(--line);vertical-align:middle}
+th{font-size:.7rem;text-transform:uppercase;letter-spacing:.07em;color:var(--muted);font-weight:600;background:var(--surface-2)}
+tbody tr:last-child td{border-bottom:0}
+td.num,th.num{text-align:right;font-variant-numeric:tabular-nums}
+td input[type=number]{min-height:36px;padding:5px 8px;font-size:.86rem;width:88px}
+td input[type=text]{min-height:36px;padding:5px 8px;font-size:.86rem}
+
+/* ---------- pomodoro ---------- */
+.pomo-wrap{display:grid;gap:16px;grid-template-columns:1fr;align-items:center}
+.ring{position:relative;width:min(260px,72vw);aspect-ratio:1;margin:4px auto}
+.ring svg{width:100%;height:100%;transform:rotate(-90deg)}
+.ring .bg{stroke:var(--surface-3);fill:none}
+.ring .fg{stroke:var(--primary);fill:none;stroke-linecap:round;transition:stroke-dashoffset .4s linear}
+.ring.warn .fg{stroke:var(--accent)}
+.ring-in{position:absolute;inset:0;display:grid;place-content:center;text-align:center}
+.clock{font-family:Georgia,serif;font-size:clamp(2.6rem,11vw,3.4rem);line-height:1;letter-spacing:-.02em;
+  font-variant-numeric:tabular-nums}
+.ring-in .mode{font-size:.74rem;text-transform:uppercase;letter-spacing:.14em;color:var(--muted);margin-top:8px}
+
+/* ---------- flashcard ---------- */
+.fc{background:var(--surface);border:1px solid var(--line-2);border-radius:var(--r);padding:26px 18px;
+  min-height:190px;display:flex;flex-direction:column;justify-content:center;text-align:center;gap:12px}
+.fc .q{font-family:Georgia,serif;font-size:clamp(1.1rem,3.6vw,1.4rem);line-height:1.35;overflow-wrap:anywhere}
+.fc .a{font-size:1rem;color:var(--ink-2);border-top:1px dashed var(--line-2);padding-top:12px;overflow-wrap:anywhere}
+
+/* ---------- habit grid ---------- */
+.hgrid{display:grid;grid-template-columns:repeat(14,minmax(0,1fr));gap:3px;flex:1 1 100%;min-width:0}
+.hcell{width:100%;aspect-ratio:1;min-height:22px;max-height:28px;border-radius:6px;border:1px solid var(--line-2);
+  background:var(--surface-2);display:grid;place-items:center;font-size:.58rem;color:var(--muted);
+  padding:0;line-height:1}
+.hcell.on{background:var(--primary);border-color:var(--primary);color:#fff}
+.hcell.today{border-color:var(--accent);border-width:2px}
+[data-theme="dark"] .hcell.on{color:#06231c}
+
+/* ---------- toasts / modal ---------- */
+#toasts{position:fixed;left:50%;bottom:18px;transform:translateX(-50%);z-index:200;display:flex;
+  flex-direction:column;gap:8px;align-items:center;width:calc(100% - 24px);max-width:420px;pointer-events:none}
+.toast{background:var(--ink);color:var(--bg);padding:10px 15px;border-radius:10px;font-size:.87rem;
+  box-shadow:0 12px 30px -12px rgba(0,0,0,.5);animation:tin .22s ease both;max-width:100%}
+[data-theme="dark"] .toast{background:var(--surface-3);color:var(--ink);border:1px solid var(--line-2)}
+.toast.ok{background:var(--ok);color:#fff}
+.toast.bad{background:var(--danger);color:#fff}
+.toast.out{animation:tout .25s ease forwards}
+@keyframes tin{from{opacity:0;transform:translateY(10px) scale(.97)}to{opacity:1;transform:none}}
+@keyframes tout{to{opacity:0;transform:translateY(8px)}}
+.modal-bg{position:fixed;inset:0;z-index:150;background:rgba(8,18,15,.5);display:none;
+  align-items:center;justify-content:center;padding:14px}
+.modal-bg.on{display:flex}
+.modal{background:var(--surface);border:1px solid var(--line);border-radius:var(--r);
+  width:100%;max-width:480px;max-height:88vh;overflow-y:auto;padding:18px;box-shadow:0 30px 70px -30px rgba(0,0,0,.6)}
+.modal h3{font-size:1.12rem;margin-bottom:12px}
+.modal .acts{display:flex;gap:8px;justify-content:flex-end;margin-top:16px;flex-wrap:wrap}
+
+/* ---------- misc ---------- */
+.doc h3{margin:18px 0 6px;font-size:1.08rem}
+.doc h4{margin:14px 0 4px;font-size:.95rem;font-family:inherit;font-weight:700}
+.doc ul,.doc ol{margin:6px 0 10px;padding-left:20px}
+.doc li{margin-bottom:5px;font-size:.92rem}
+.doc p{font-size:.92rem}
+.kbd{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:.8em;background:var(--surface-2);
+  border:1px solid var(--line-2);border-bottom-width:2px;border-radius:5px;padding:1px 5px}
+.warn-box{background:var(--warn-soft);border:1px solid color-mix(in srgb,var(--warn) 30%,transparent);
+  border-radius:var(--r-sm);padding:10px 12px;font-size:.83rem;color:var(--ink-2);margin:10px 0}
+@supports not (background:color-mix(in srgb,red,blue)){.warn-box{border-color:var(--line-2)}}
+.warn-box b{color:var(--warn)}
+.note-line{font-size:.8rem;color:var(--muted);margin-top:6px}
+.code{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:.82rem;background:var(--surface-2);
+  border:1px solid var(--line);border-radius:var(--r-xs);padding:9px 11px;overflow-wrap:anywhere;white-space:pre-wrap}
+.mono{font-family:ui-monospace,SFMono-Regular,Menlo,monospace}
+.thead-mobile{display:block}
+.hide-m{display:none}
+.rail{display:flex;gap:6px;overflow-x:auto;padding-bottom:4px;-webkit-overflow-scrolling:touch}
+.rail .btn{flex:0 0 auto}
+.hero{background:var(--surface);border:1px solid var(--line);border-radius:var(--r);padding:18px;
+  box-shadow:var(--shadow);margin-bottom:14px;position:relative;overflow:hidden}
+.hero:before{content:"";position:absolute;left:0;top:0;bottom:0;width:5px;background:var(--primary)}
+.hero .greet{font-family:Georgia,serif;font-size:clamp(1.3rem,4.6vw,1.75rem);line-height:1.2;margin-bottom:4px}
+.hero .sub{color:var(--muted);font-size:.88rem;margin-bottom:12px}
+.qa{display:grid;gap:8px;grid-template-columns:repeat(2,minmax(0,1fr))}
+.qa .btn{justify-content:flex-start;min-height:46px;background:var(--surface-2);border-color:var(--line);
+  white-space:normal;text-align:left;line-height:1.3;padding:8px 10px;gap:8px;min-width:0}
+.qa .btn svg{flex:0 0 auto}
+.qa .btn:last-child:nth-child(odd){grid-column:1/-1}
+.attn{border-left:3px solid var(--accent);background:var(--accent-soft);border-radius:var(--r-sm);
+  padding:10px 12px;font-size:.86rem;margin-bottom:10px;color:var(--ink)}
+.attn b{font-weight:700}
+.fm{position:fixed;inset:0;z-index:120;background:var(--bg);display:none;flex-direction:column;
+  align-items:center;justify-content:center;padding:22px;gap:16px}
+.fm.on{display:flex}
+.fm .ex{position:absolute;top:14px;right:14px}
+.fm-note{color:var(--muted);font-size:.85rem;text-align:center;max-width:340px}
+
+@media (min-width:620px){
+  .form-grid{grid-template-columns:repeat(2,1fr)}
+  .form-grid.g3{grid-template-columns:repeat(3,1fr)}
+  .inline-form{grid-template-columns:1fr auto}
+  .wrap{padding:24px 20px 10px}
+  .tb-date{display:block}
+  .brand span{display:inline}
+  .qa{grid-template-columns:repeat(4,1fr)}
+  .pomo-wrap{grid-template-columns:auto 1fr}
+  .ring{margin:0}
+}
+@media (min-width:900px){
+  .sidebar{transform:none;box-shadow:none}
+  .sidebar .x,.menu-btn,.scrim{display:none}
+  .main{margin-left:var(--side)}
+  .wrap{padding:28px 28px 16px}
+  .topbar{padding-left:20px}
+}
+@media (max-width:619px){
+  .modal{max-height:92vh}
+  .view-h .hact{margin-left:0;width:100%}
+  .view-h .hact .btn{flex:1}
+}
+@media (max-width:479px){
+  .topbar{gap:6px;padding-left:8px;padding-right:8px}
+  .topbar .btn.primary{width:42px;padding:0;flex:0 0 42px}
+  .topbar .btn.primary span{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
+  .brand{gap:7px}
+  .brand b{font-size:1rem}
+  .wrap{padding-left:11px;padding-right:11px}
+}
+@media (max-width:359px){
+  .brand b{display:none}
+}
+@media (prefers-reduced-motion:reduce){*{animation:none !important;transition:none !important}}
+</style>
+</head>
+<body>
+<div id="toasts" aria-live="polite"></div>
+
+<header class="topbar">
+  <button class="icon-btn menu-btn" data-act="menu" aria-label="Open navigation" aria-expanded="false" aria-controls="sidebar">
+    <svg viewBox="0 0 24 24"><path d="M3 6h18M3 12h18M3 18h18"/></svg>
+  </button>
+  <div class="brand">
+    <div class="mark"><svg viewBox="0 0 24 24" fill="none" stroke-width="2.2" stroke-linecap="round"><path d="M5 19V13M12 19V7M19 19V4"/></svg></div>
+    <b>Cadence</b><span>student OS</span>
+  </div>
+  <div class="spacer"></div>
+  <div class="tb-date" id="tbDate"></div>
+  <button class="btn sm primary" data-act="quickAdd">
+    <svg viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg><span>Add task</span>
+  </button>
+  <button class="icon-btn" data-act="theme" aria-label="Toggle colour theme" title="Toggle theme">
+    <svg viewBox="0 0 24 24" id="themeIcon"><circle cx="12" cy="12" r="4.2"/><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/></svg>
+  </button>
+</header>
+
+<div class="scrim" id="scrim" data-act="menu"></div>
+
+<aside class="sidebar" id="sidebar" aria-label="Main navigation">
+  <div class="side-head">
+    <div class="mark"><svg viewBox="0 0 24 24" fill="none" stroke-width="2.2" stroke-linecap="round"><path d="M5 19V13M12 19V7M19 19V4"/></svg></div>
+    <b>Cadence</b>
+    <button class="icon-btn x" data-act="menu" aria-label="Close navigation">
+      <svg viewBox="0 0 24 24"><path d="M18 6L6 18M6 6l12 12"/></svg>
+    </button>
+  </div>
+  <div class="side-sub">Workspace</div>
+  <nav class="side-nav">
+    <button class="nav-item" data-nav="dash">
+      <svg viewBox="0 0 24 24"><path d="M3 12h7V3H3zM14 21h7v-9h-7zM14 3h7v6h-7zM3 16h7v5H3z"/></svg><span>Today</span>
+    </button>
+    <button class="nav-item" data-nav="plan">
+      <svg viewBox="0 0 24 24"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 01-2 2H5a2 2 0 01-2-2V5a2 2 0 012-2h11"/></svg><span>Daily plan</span><span class="cnt hide" id="cntPlan"></span>
+    </button>
+    <button class="nav-item" data-nav="reminders">
+      <svg viewBox="0 0 24 24"><path d="M18 8a6 6 0 10-12 0c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.7 21a2 2 0 01-3.4 0"/></svg><span>Reminders</span><span class="cnt hide" id="cntRem"></span>
+    </button>
+    <button class="nav-item" data-nav="notes">
+      <svg viewBox="0 0 24 24"><path d="M12 2a3 3 0 00-3 3v7a3 3 0 006 0V5a3 3 0 00-3-3z"/><path d="M19 10v2a7 7 0 01-14 0v-2M12 19v3M8 22h8"/></svg><span>Lecture notes</span>
+    </button>
+    <button class="nav-item" data-nav="assignments">
+      <svg viewBox="0 0 24 24"><path d="M9 2h6v4H9z"/><path d="M8 4H6a2 2 0 00-2 2v14a2 2 0 002 2h12a2 2 0 002-2V6a2 2 0 00-2-2h-2"/><path d="M8 12h8M8 16h5"/></svg><span>Assignments</span><span class="cnt hide" id="cntAss"></span>
+    </button>
+    <button class="nav-item" data-nav="focus">
+      <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9.2"/><path d="M12 7v5.2l3.4 2"/></svg><span>Focus timer</span>
+    </button>
+    <div class="nav-group">Organise</div>
+    <button class="nav-item" data-nav="files">
+      <svg viewBox="0 0 24 24"><path d="M3 7.5A2.5 2.5 0 015.5 5h3.2l2 2.2h7.8A2.5 2.5 0 0121 9.7v8.8A2.5 2.5 0 0118.5 21h-13A2.5 2.5 0 013 18.5z"/></svg><span>Files &amp; email</span>
+    </button>
+    <button class="nav-item" data-nav="review">
+      <svg viewBox="0 0 24 24"><path d="M21 4v6h-6"/><path d="M3 20v-6h6"/><path d="M3.6 9a9 9 0 0114.8-3.4L21 8M21 15l-2.6 2.4A9 9 0 013.6 15"/></svg><span>Weekly review</span>
+    </button>
+    <button class="nav-item" data-nav="grades">
+      <svg viewBox="0 0 24 24"><path d="M3 21h18"/><path d="M7 21v-6M12 21V8M17 21v-9"/></svg><span>Grades &amp; GPA</span>
+    </button>
+    <div class="nav-group">Tools</div>
+    <button class="nav-item" data-nav="cards">
+      <svg viewBox="0 0 24 24"><path d="M12 2l9 5-9 5-9-5z"/><path d="M3 12l9 5 9-5M3 17l9 5 9-5"/></svg><span>Flashcards</span><span class="cnt hide" id="cntCards"></span>
+    </button>
+    <button class="nav-item" data-nav="habits">
+      <svg viewBox="0 0 24 24"><path d="M22 11.2V12a10 10 0 11-5.9-9.1"/><path d="M22 4L12 14l-3-3"/></svg><span>Habits</span>
+    </button>
+    <button class="nav-item" data-nav="backup">
+      <svg viewBox="0 0 24 24"><ellipse cx="12" cy="5.5" rx="8" ry="2.8"/><path d="M4 5.5v13c0 1.5 3.6 2.8 8 2.8s8-1.3 8-2.8v-13"/><path d="M4 12c0 1.5 3.6 2.8 8 2.8s8-1.3 8-2.8"/></svg><span>Backup &amp; data</span>
+    </button>
+    <div class="nav-group">Help</div>
+    <button class="nav-item" data-nav="docs">
+      <svg viewBox="0 0 24 24"><path d="M4 19.5A2.5 2.5 0 016.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 014 19.5v-15A2.5 2.5 0 016.5 2z"/></svg><span>Documentation</span>
+    </button>
+  </nav>
+  <div class="side-foot">
+    <span class="dot"></span>Saved locally<span id="saveWhen"></span>
+  </div>
+</aside>
+
+<main class="main">
+
+<!-- ============ TODAY ============ -->
+<section class="view active" id="v-dash">
+  <div class="wrap">
+    <div class="hero">
+      <div class="greet" id="dashGreet">Good morning.</div>
+      <div class="sub" id="dashSub">Loading your day…</div>
+      <div class="track-row">
+        <span id="dashGoalLbl">Today</span>
+        <div class="bar"><i id="dashBar" style="width:0%"></i></div>
+        <span id="dashGoalNum" class="nowrap">0/0</span>
+      </div>
+      <div class="row" style="margin-top:14px" id="dashActions">
+        <button class="btn primary" data-act="quickAdd"><svg viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg>Add task</button>
+        <button class="btn" data-nav="focus"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg>Start focus</button>
+        <button class="btn" data-nav="reminders"><svg viewBox="0 0 24 24"><path d="M18 8a6 6 0 10-12 0c0 7-3 9-3 9h18s-3-2-3-9"/></svg>Review due</button>
+      </div>
+    </div>
+
+    <div class="stats" id="dashStats"></div>
+    <div id="dashAttn"></div>
+
+    <div class="grid two">
+      <div class="card">
+        <div class="card-h"><h2>Today's priorities</h2>
+          <div class="hact"><button class="btn sm ghost" data-nav="plan">Open plan</button></div>
+        </div>
+        <div class="list" id="dashTasks"></div>
+      </div>
+      <div class="stack">
+        <div class="card">
+          <div class="card-h"><h2>Due soon</h2><div class="hact"><span class="pill">next 7 days</span></div></div>
+          <div class="list" id="dashDue"></div>
+        </div>
+        <div class="card">
+          <div class="card-h"><h2>Study queue</h2></div>
+          <div id="dashCards"></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-h"><h2>Jump to</h2></div>
+      <div class="qa">
+        <button class="btn" data-nav="plan"><svg viewBox="0 0 24 24"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 01-2 2H5a2 2 0 01-2-2V5a2 2 0 012-2h11"/></svg>Plan the day</button>
+        <button class="btn" data-nav="notes"><svg viewBox="0 0 24 24"><path d="M12 2a3 3 0 00-3 3v7a3 3 0 006 0V5a3 3 0 00-3-3z"/><path d="M19 10v2a7 7 0 01-14 0v-2"/></svg>Capture a lecture</button>
+        <button class="btn" data-nav="grades"><svg viewBox="0 0 24 24"><path d="M3 21h18"/><path d="M7 21v-6M12 21V8M17 21v-9"/></svg>Check my GPA</button>
+        <button class="btn" data-nav="review"><svg viewBox="0 0 24 24"><path d="M21 4v6h-6"/><path d="M3 20v-6h6"/><path d="M3.6 9a9 9 0 0114.8-3.4L21 8"/></svg>Weekly review</button>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ============ DAILY PLAN ============ -->
+<section class="view" id="v-plan">
+  <div class="wrap">
+    <div class="view-h">
+      <h1>Daily plan</h1>
+      <div class="hact">
+        <button class="btn sm" data-act="planPrev" aria-label="Previous day">‹</button>
+        <button class="btn sm" data-act="planToday">Today</button>
+        <button class="btn sm" data-act="planNext" aria-label="Next day">›</button>
+      </div>
+      <div class="sub" id="planSub">Prioritise three things that matter, then fill the gaps.</div>
+    </div>
+
+    <div class="stats" id="planStats"></div>
+
+    <div class="card">
+      <div class="card-h"><h2 id="planDateTitle">Plan</h2><div class="hact"><span class="pill" id="planDatePill"></span></div></div>
+      <form class="form-grid g3" data-form="task" autocomplete="off">
+        <div class="field span2" style="grid-column:1/-1">
+          <label class="label" for="taskTitle">New task</label>
+          <input id="taskTitle" name="title" type="text" placeholder="e.g. Draft section 2 of the data structures report" required maxlength="140">
+        </div>
+        <div class="field">
+          <label class="label" for="taskPrio">Priority</label>
+          <select id="taskPrio" name="prio">
+            <option value="1">High — must happen</option>
+            <option value="2" selected>Medium — should happen</option>
+            <option value="3">Low — nice to have</option>
+          </select>
+        </div>
+        <div class="field">
+          <label class="label" for="taskCourse">Course</label>
+          <input id="taskCourse" name="course" type="text" placeholder="CS201" maxlength="24" list="courseList">
+        </div>
+        <div class="field">
+          <label class="label" for="taskEst">Est. minutes</label>
+          <input id="taskEst" name="est" type="number" min="5" max="480" step="5" placeholder="45">
+        </div>
+        <div class="field" style="justify-content:flex-end">
+          <button class="btn primary" type="submit"><svg viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg>Add to plan</button>
+        </div>
+      </form>
+      <datalist id="courseList"></datalist>
+    </div>
+
+    <div class="card">
+      <div class="card-h">
+        <h2>Plan for <span id="planDayName">today</span></h2>
+        <div class="hact">
+          <button class="btn sm" data-act="carryOver">Carry unfinished → tomorrow</button>
+          <button class="btn sm ghost" data-act="clearDone">Clear done</button>
+        </div>
+      </div>
+      <div class="list" id="planList"></div>
+    </div>
+
+    <div class="card">
+      <div class="card-h"><h2>Week at a glance</h2><div class="hact"><span class="pill">tasks per day</span></div></div>
+      <div class="list" id="planWeek"></div>
+    </div>
+  </div>
+</section>
+
+<!-- ============ REMINDERS ============ -->
+<section class="view" id="v-reminders">
+  <div class="wrap">
+    <div class="view-h">
+      <h1>Study reminders</h1>
+      <div class="hact">
+        <button class="btn sm" data-act="notifyPerm" id="notifyBtn">Enable alerts</button>
+      </div>
+      <div class="sub">Deadline countdowns plus spaced-repetition review dates. Alerts are in-app; browser notifications are optional.</div>
+    </div>
+
+    <div id="remAlerts"></div>
+
+    <div class="grid two">
+      <div class="card">
+        <div class="card-h"><h2>Add a deadline</h2></div>
+        <form class="form-grid" data-form="reminder" autocomplete="off">
+          <div class="field span2">
+            <label class="label" for="remTitle">What is it?</label>
+            <input id="remTitle" name="title" type="text" placeholder="Organic chemistry midterm" required maxlength="120">
+          </div>
+          <div class="field">
+            <label class="label" for="remKind">Type</label>
+            <select id="remKind" name="kind">
+              <option value="exam">Exam</option>
+              <option value="deadline">Deadline</option>
+              <option value="review">Review session</option>
+              <option value="other">Other</option>
+            </select>
+          </div>
+          <div class="field">
+            <label class="label" for="remDate">Date</label>
+            <input id="remDate" name="date" type="date" required>
+          </div>
+          <div class="field">
+            <label class="label" for="remCourse">Course</label>
+            <input id="remCourse" name="course" type="text" placeholder="CHEM210" maxlength="24" list="courseList">
+          </div>
+          <div class="field" style="justify-content:flex-end">
+            <button class="btn primary" type="submit">Add reminder</button>
+          </div>
+        </form>
+        <div class="note-line">Deadline alerts fire inside the app whenever you open it. Press <b>Enable alerts</b> to also get system notifications while the tab is open.</div>
+      </div>
+
+      <div class="card">
+        <div class="card-h"><h2>Spaced repetition scheduler</h2></div>
+        <p class="small muted" style="margin-top:-4px">Pick a topic and Cadence lays out review dates on an expanding interval ladder. Each review becomes a reminder you can tick off.</p>
+        <form class="form-grid" data-form="sched" autocomplete="off">
+          <div class="field span2">
+            <label class="label" for="schedTopic">Topic to review</label>
+            <input id="schedTopic" name="topic" type="text" placeholder="Cell membrane transport" required maxlength="120">
+          </div>
+          <div class="field">
+            <label class="label" for="schedStart">First study date</label>
+            <input id="schedStart" name="start" type="date" required>
+          </div>
+          <div class="field">
+            <label class="label" for="schedPlan">Interval ladder</label>
+            <select id="schedPlan" name="plan">
+              <option value="1,3,7,14,30">1 · 3 · 7 · 14 · 30 days (standard)</option>
+              <option value="1,2,4,8,16,32">1 · 2 · 4 · 8 · 16 · 32 days (dense)</option>
+              <option value="1,7,14,30">1 · 7 · 14 · 30 days (weekly)</option>
+              <option value="2,10,30">2 · 10 · 30 days (light)</option>
+            </select>
+          </div>
+          <div class="field" style="justify-content:flex-end">
+            <button class="btn primary" type="submit">Schedule reviews</button>
+          </div>
+        </form>
+        <div class="track-row" style="margin-top:10px">
+          <span>Card queue</span><div class="bar accent"><i id="remQueueBar" style="width:0%"></i></div>
+          <span id="remQueueNum" class="nowrap">0 due</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-h"><h2>All reminders</h2>
+        <div class="hact">
+          <div class="seg" id="remFilter">
+            <button class="active" data-filter="open">Open</button>
+            <button data-filter="done">Done</button>
+            <button data-filter="all">All</button>
+          </div>
+        </div>
+      </div>
+      <div class="list" id="remList"></div>
+    </div>
+  </div>
+</section>
+<!-- ============ LECTURE NOTES ============ -->
+<section class="view" id="v-notes">
+  <div class="wrap">
+    <div class="view-h">
+      <h1>Lecture notes</h1>
+      <div class="hact"><span class="chip out" id="sttChip">speech: checking…</span></div>
+      <div class="sub">Record the lecture, capture speech to text where the browser allows it, then summarise and generate study questions. Typing or pasting works everywhere, with or without a microphone.</div>
+    </div>
+
+    <div id="sttBanner"></div>
+
+    <div class="card">
+      <div class="card-h">
+        <h2>Capture</h2>
+        <div class="hact">
+          <span class="pill mono" id="recTimer">00:00</span>
+          <button class="btn sm accent" id="recBtn">
+            <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="6" fill="currentColor" stroke="none"/></svg><span id="recBtnLbl">Start recording</span>
+          </button>
+        </div>
+      </div>
+      <div class="form-grid">
+        <div class="field">
+          <label class="label" for="noteTitle">Lecture title</label>
+          <input id="noteTitle" type="text" placeholder="Week 6 — Membrane transport" maxlength="120">
+        </div>
+        <div class="field">
+          <label class="label" for="noteCourse">Course</label>
+          <input id="noteCourse" type="text" placeholder="BIOL210" maxlength="24" list="courseList">
+        </div>
+      </div>
+      <div class="field" style="margin-top:10px">
+        <label class="label" for="noteBody">Notes &amp; live transcript <span class="muted tiny" id="recState"></span></label>
+        <textarea id="noteBody" style="min-height:150px" placeholder="Type or paste here. If your browser supports the Web Speech API, the live transcript is appended to this box while you record."></textarea>
+      </div>
+      <div class="row" style="margin-top:11px">
+        <button class="btn" id="btnSummarize"><svg viewBox="0 0 24 24"><path d="M4 6h16M4 12h13M4 18h9"/></svg>Summarise</button>
+        <button class="btn" id="btnQuestions"><svg viewBox="0 0 24 24"><path d="M9.1 9a3 3 0 015.8 1c0 2-3 2.4-3 4"/><path d="M12 17h.01"/><circle cx="12" cy="12" r="9.2"/></svg>Generate questions</button>
+        <button class="btn primary" id="btnSaveNote"><svg viewBox="0 0 24 24"><path d="M19 21H5a2 2 0 01-2-2V5a2 2 0 012-2h11l5 5v11a2 2 0 01-2 2z"/><path d="M17 21v-8H7v8M7 3v5h8"/></svg>Save note</button>
+        <button class="btn ghost" id="btnClearNote">Clear</button>
+      </div>
+      <div class="note-line" id="recHint">Recording stays on this device. Audio can be downloaded while it is in memory; saved notes keep the text only.</div>
+    </div>
+
+    <div class="card hide" id="noteOutCard">
+      <div class="card-h"><h2>Generated from your notes</h2>
+        <div class="hact"><button class="btn sm ghost" data-act="copyNoteOut">Copy all</button></div>
+      </div>
+      <div id="noteSummary"></div>
+      <div id="noteQuestions"></div>
+    </div>
+
+    <div class="card">
+      <div class="card-h"><h2>Saved notes</h2><div class="hact"><span class="pill" id="noteCount">0</span></div></div>
+      <div class="list" id="noteList"></div>
+    </div>
+  </div>
+</section>
+
+<!-- ============ ASSIGNMENTS ============ -->
+<section class="view" id="v-assignments">
+  <div class="wrap">
+    <div class="view-h">
+      <h1>Assignments</h1>
+      <div class="hact"><button class="btn sm" data-act="asSortDue">Sort by due date</button></div>
+      <div class="sub">Everything you owe, with what it is worth and how long is left. Weight matters more than the due date.</div>
+    </div>
+
+    <div class="stats" id="asStats"></div>
+
+    <div class="card">
+      <div class="card-h"><h2>Add an assignment</h2></div>
+      <form class="form-grid g3" data-form="assignment" autocomplete="off">
+        <div class="field" style="grid-column:1/-1">
+          <label class="label" for="asTitle">Title</label>
+          <input id="asTitle" name="title" type="text" placeholder="Problem set 4 — graph algorithms" required maxlength="140">
+        </div>
+        <div class="field">
+          <label class="label" for="asCourse">Course</label>
+          <input id="asCourse" name="course" type="text" placeholder="CS201" maxlength="24" list="courseList">
+        </div>
+        <div class="field">
+          <label class="label" for="asDue">Due date</label>
+          <input id="asDue" name="due" type="date" required>
+        </div>
+        <div class="field">
+          <label class="label" for="asWeight">Weight (% of grade)</label>
+          <input id="asWeight" name="weight" type="number" min="0" max="100" step="1" placeholder="15">
+        </div>
+        <div class="field">
+          <label class="label" for="asStatus">Status</label>
+          <select id="asStatus" name="status">
+            <option value="todo">Not started</option>
+            <option value="doing">In progress</option>
+            <option value="submitted">Submitted</option>
+            <option value="graded">Graded</option>
+          </select>
+        </div>
+        <div class="field" style="justify-content:flex-end">
+          <button class="btn primary" type="submit">Add assignment</button>
+        </div>
+      </form>
+    </div>
+
+    <div class="card">
+      <div class="card-h">
+        <h2>All assignments</h2>
+        <div class="hact">
+          <div class="seg" id="asFilter">
+            <button class="active" data-afilter="open">Open</button>
+            <button data-afilter="all">All</button>
+            <button data-afilter="submitted">Submitted</button>
+          </div>
+        </div>
+      </div>
+      <div class="list" id="asList"></div>
+    </div>
+  </div>
+</section>
+
+<!-- ============ FOCUS ============ -->
+<section class="view" id="v-focus">
+  <div class="wrap">
+    <div class="view-h">
+      <h1>Focus timer</h1>
+      <div class="hact"><button class="btn sm" data-act="focusFull">Distraction-free</button></div>
+      <div class="sub">Pomodoro cycles with a distraction list you commit to before starting. Sessions are logged so you can see real study hours.</div>
+    </div>
+
+    <div class="card">
+      <div class="seg" id="pomoMode" style="margin-bottom:16px">
+        <button class="active" data-mode="work">Focus 25</button>
+        <button data-mode="short">Break 5</button>
+        <button data-mode="long">Long break 15</button>
+      </div>
+      <div class="pomo-wrap">
+        <div class="ring" id="ring">
+          <svg viewBox="0 0 200 200" aria-hidden="true">
+            <circle class="bg" cx="100" cy="100" r="90" stroke-width="12"></circle>
+            <circle class="fg" id="ringFg" cx="100" cy="100" r="90" stroke-width="12"
+              stroke-dasharray="565.49" stroke-dashoffset="0"></circle>
+          </svg>
+          <div class="ring-in">
+            <div class="clock" id="clock">25:00</div>
+            <div class="mode" id="modeLbl">Focus</div>
+          </div>
+        </div>
+        <div>
+          <div class="row" style="margin-bottom:12px">
+            <button class="btn primary" id="btnStart"><svg viewBox="0 0 24 24"><path d="M8 5l11 7-11 7z" fill="currentColor" stroke="none"/></svg><span id="btnStartLbl">Start</span></button>
+            <button class="btn" id="btnReset">Reset</button>
+            <button class="btn ghost" id="btnSkip">Skip</button>
+          </div>
+          <div class="field" style="margin-bottom:10px">
+            <label class="label" for="focusTask">Working on</label>
+            <select id="focusTask"><option value="">— not linked —</option></select>
+          </div>
+          <div class="stats" style="margin-bottom:0">
+            <div class="stat"><div class="n" id="focusToday">0<small>m</small></div><div class="l">Focused today</div></div>
+            <div class="stat"><div class="n" id="focusStreak">0</div><div class="l">Sessions today</div></div>
+          </div>
+        </div>
+      </div>
+      <div class="field" style="margin-top:16px">
+        <label class="label" for="distract">Distractions parked (one per line)</label>
+        <textarea id="distract" style="min-height:74px" placeholder="WhatsApp group chat&#10;Check email&#10;YouTube recommendations"></textarea>
+        <div class="note-line">Write them down before you start so your brain stops holding them. They stay here until you clear them.</div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-h"><h2>Session log</h2>
+        <div class="hact"><span class="pill" id="sessTotal">0 sessions</span><button class="btn sm ghost" data-act="clearSessions">Clear</button></div>
+      </div>
+      <div class="list" id="sessList"></div>
+    </div>
+  </div>
+</section>
+
+<!-- ============ FILES & EMAIL ============ -->
+<section class="view" id="v-files">
+  <div class="wrap">
+    <div class="view-h">
+      <h1>Files &amp; email</h1>
+      <div class="sub">One naming convention for every file, and Gmail filters you can actually import. No login, no API key — the filter file is generated locally for you to import yourself.</div>
+    </div>
+
+    <div class="card">
+      <div class="card-h"><h2>File-naming convention</h2>
+        <div class="hact"><span class="chip info">generator</span></div>
+      </div>
+      <form class="form-grid g3" data-form="filename" autocomplete="off">
+        <div class="field">
+          <label class="label" for="fnCourse">Course code</label>
+          <input id="fnCourse" name="course" type="text" placeholder="CS201" maxlength="16" required>
+        </div>
+        <div class="field">
+          <label class="label" for="fnType">Document type</label>
+          <select id="fnType" name="type">
+            <option value="notes">notes</option>
+            <option value="lecture">lecture</option>
+            <option value="assignment">assignment</option>
+            <option value="lab">lab</option>
+            <option value="reading">reading</option>
+            <option value="exam">exam</option>
+            <option value="slides">slides</option>
+            <option value="revision">revision</option>
+          </select>
+        </div>
+        <div class="field">
+          <label class="label" for="fnTitle">Short title</label>
+          <input id="fnTitle" name="title" type="text" placeholder="graph algorithms" maxlength="60" required>
+        </div>
+        <div class="field">
+          <label class="label" for="fnDate">Date</label>
+          <input id="fnDate" name="date" type="date">
+        </div>
+        <div class="field">
+          <label class="label" for="fnVer">Version</label>
+          <input id="fnVer" name="ver" type="number" min="1" max="99" step="1" value="1">
+        </div>
+        <div class="field">
+          <label class="label" for="fnName">Your initials (optional)</label>
+          <input id="fnName" name="name" type="text" placeholder="AO" maxlength="6">
+        </div>
+      </form>
+      <div class="field" style="margin-top:12px">
+        <label class="label" for="fnPattern">Pattern</label>
+        <select id="fnPattern">
+          <option value="{course}_{type}_{date}_{title}_v{ver}">{course}_{type}_{date}_{title}_v{ver}</option>
+          <option value="{date}_{course}_{type}_{title}_v{ver}">{date}_{course}_{type}_{title}_v{ver}</option>
+          <option value="{course}/{type}/{date}_{title}_v{ver}">{course}/{type}/{date}_{title}_v{ver}</option>
+          <option value="{course}-{type}-{title}-{date}-v{ver}">{course}-{type}-{title}-{date}-v{ver}</option>
+          <option value="{course}_{type}_{title}_v{ver}_{name}">{course}_{type}_{title}_v{ver}_{name}</option>
+        </select>
+      </div>
+      <div class="field" style="margin-top:10px">
+        <label class="label">Generated filename</label>
+        <div class="code" id="fnPreview">—</div>
+      </div>
+      <div class="row" style="margin-top:10px">
+        <button class="btn primary" id="btnCopyFn"><svg viewBox="0 0 24 24"><rect x="9" y="9" width="12" height="12" rx="2"/><path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1"/></svg>Copy filename</button>
+        <button class="btn" id="btnSaveFn">Save to file log</button>
+      </div>
+      <div class="note-line">Rules applied automatically: lowercase, spaces → hyphens, accents stripped, unsafe characters removed, date as YYYY-MM-DD, version always two digits.</div>
+    </div>
+
+    <div class="card">
+      <div class="card-h"><h2>Files you have named</h2><div class="hact"><span class="pill" id="fnCount">0</span></div></div>
+      <div class="list" id="fnList"></div>
+    </div>
+
+    <div class="card">
+      <div class="card-h"><h2>Gmail filters</h2><div class="hact"><span class="chip out">export only</span></div></div>
+      <p class="small muted" style="margin-top:-4px">Build a filter, then either import the XML into Gmail (Settings → Filters and Blocked Addresses → Import filters) or paste the search into Gmail's filter box. Cadence never connects to your mailbox.</p>
+      <div class="form-grid g3">
+        <div class="field">
+          <label class="label" for="gmFrom">From contains</label>
+          <input id="gmFrom" type="text" placeholder="professor@university.edu" maxlength="80">
+        </div>
+        <div class="field">
+          <label class="label" for="gmSubject">Subject contains</label>
+          <input id="gmSubject" type="text" placeholder="CS201" maxlength="80">
+        </div>
+        <div class="field">
+          <label class="label" for="gmLabel">Apply label</label>
+          <input id="gmLabel" type="text" placeholder="Course/CS201" maxlength="60">
+        </div>
+      </div>
+      <div class="form-grid g3" style="margin-top:10px">
+        <div class="field">
+          <label class="label" for="gmHas">Has words</label>
+          <input id="gmHas" type="text" placeholder="assignment OR deadline" maxlength="80">
+        </div>
+        <div class="field">
+          <label class="label" for="gmMode">Search mode</label>
+          <select id="gmMode">
+            <option value="and">Match all conditions</option>
+            <option value="or">Match any condition</option>
+          </select>
+        </div>
+        <div class="field" style="justify-content:flex-end">
+          <button class="btn primary" id="btnGmBuild">Build filter</button>
+        </div>
+      </div>
+      <div class="field" style="margin-top:12px">
+        <label class="label">Gmail search query (paste into the filter search box)</label>
+        <div class="code" id="gmQuery">—</div>
+      </div>
+      <div class="field" style="margin-top:10px">
+        <label class="label">Importable filter XML</label>
+        <div class="code" id="gmXml" style="max-height:200px;overflow:auto">—</div>
+      </div>
+      <div class="row" style="margin-top:10px">
+        <button class="btn" id="btnCopyGm">Copy search</button>
+        <button class="btn" id="btnCopyXml">Copy XML</button>
+        <button class="btn primary" id="btnDlXml"><svg viewBox="0 0 24 24"><path d="M12 3v12M7 10l5 5 5-5"/><path d="M4 21h16"/></svg>Download .xml</button>
+      </div>
+      <div class="warn-box"><b>No account needed.</b> The XML is a local file export in Gmail's filter format. You import it yourself in Gmail settings; nothing is uploaded from this page.</div>
+      <div class="list" id="gmList" style="margin-top:8px"></div>
+    </div>
+  </div>
+</section>
+
+<!-- ============ WEEKLY REVIEW ============ -->
+<section class="view" id="v-review">
+  <div class="wrap">
+    <div class="view-h">
+      <h1>Weekly review</h1>
+      <div class="hact"><span class="pill" id="rvWeekPill"></span></div>
+      <div class="sub">Fifteen minutes on Sunday: look at the numbers, name what worked, decide the next week. Saved per week so you can read your own history.</div>
+    </div>
+
+    <div class="stats" id="rvStats"></div>
+
+    <div class="card">
+      <div class="card-h"><h2>This week's review</h2>
+        <div class="hact"><button class="btn sm ghost" data-act="rvPrefill">Pull in unfinished work</button></div>
+      </div>
+      <div class="field" style="margin-bottom:10px">
+        <label class="label">Questions to sit with</label>
+        <div class="small muted">What actually moved? What kept slipping, and why? What is the one thing next week must not slide?</div>
+      </div>
+      <div class="form-grid">
+        <div class="field">
+          <label class="label" for="rvWins">Wins — what worked</label>
+          <textarea id="rvWins" style="min-height:88px" placeholder="Finished the stats problem set two days early; two solid 50-minute focus blocks on Tuesday."></textarea>
+        </div>
+        <div class="field">
+          <label class="label" for="rvChallenges">Friction — what got in the way</label>
+          <textarea id="rvChallenges" style="min-height:88px" placeholder="Kept starting at 9pm. Skipped two review sessions for CHEM."></textarea>
+        </div>
+        <div class="field span2">
+          <label class="label" for="rvNext">Next week — three commitments</label>
+          <textarea id="rvNext" style="min-height:88px" placeholder="1. Study block 6–7pm Mon–Thu&#10;2. Draft the lab report by Wednesday&#10;3. Clear CHEM review queue every morning"></textarea>
+        </div>
+      </div>
+      <div style="margin-top:12px">
+        <div class="label" style="margin-bottom:6px">Carry-over check</div>
+        <div class="list" id="rvCarry"></div>
+      </div>
+      <div class="row" style="margin-top:12px">
+        <button class="btn primary" id="btnSaveReview"><svg viewBox="0 0 24 24"><path d="M20 6L9 17l-5-5"/></svg>Save this review</button>
+        <span class="small muted" id="rvSavedNote"></span>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-h"><h2>Past reviews</h2><div class="hact"><span class="pill" id="rvCount">0</span></div></div>
+      <div class="list" id="rvHistory"></div>
+    </div>
+  </div>
+</section>
+
+<!-- ============ GRADES & GPA ============ -->
+<section class="view" id="v-grades">
+  <div class="wrap">
+    <div class="view-h">
+      <h1>Grades &amp; GPA</h1>
+      <div class="hact">
+        <button class="btn sm" data-act="gpaWhatIf">What-if</button>
+      </div>
+      <div class="sub">Weights per assessment, live course percentages, a 4.0-scale GPA weighted by credit hours, and a what-if planner.</div>
+    </div>
+
+    <div class="stats" id="gpaStats"></div>
+
+    <div class="card">
+      <div class="card-h"><h2>Add a course</h2></div>
+      <form class="form-grid g3" data-form="course" autocomplete="off">
+        <div class="field">
+          <label class="label" for="cName">Course</label>
+          <input id="cName" name="name" type="text" placeholder="CS201 — Data Structures" required maxlength="80">
+        </div>
+        <div class="field">
+          <label class="label" for="cCredits">Credit hours</label>
+          <input id="cCredits" name="credits" type="number" min="0.5" max="12" step="0.5" value="3" required>
+        </div>
+        <div class="field">
+          <label class="label" for="cScale">Grading scale</label>
+          <select id="cScale" name="scale">
+            <option value="us4">4.0 scale (A=4.0)</option>
+            <option value="uk">UK percentage (70+ = first)</option>
+          </select>
+        </div>
+        <div class="field" style="justify-content:flex-end">
+          <button class="btn primary" type="submit">Add course</button>
+        </div>
+      </form>
+    </div>
+
+    <div id="courseListG"></div>
+
+    <div class="card">
+      <div class="card-h"><h2>How the GPA is calculated</h2></div>
+      <div class="small muted">
+        <p style="margin-bottom:6px">Each course percentage comes from the weighted average of its assessments. Percentage maps to a grade point, and the GPA is the credit-weighted mean of those points:</p>
+        <div class="code">GPA = Σ (grade_point × credit_hours) / Σ credit_hours</div>
+        <p style="margin-top:8px;margin-bottom:0">4.0 scale: A 93+ = 4.0 · A− 90 = 3.7 · B+ 87 = 3.3 · B 83 = 3.0 · B− 80 = 2.7 · C+ 77 = 2.3 · C 73 = 2.0 · C− 70 = 1.7 · D 60 = 1.0 · F = 0. Assessments with no score yet are excluded, so the number is always "GPA so far".</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ============ FLASHCARDS ============ -->
+<section class="view" id="v-cards">
+  <div class="wrap">
+    <div class="view-h">
+      <h1>Flashcards</h1>
+      <div class="hact"><span class="chip info">added feature 1</span></div>
+      <div class="sub">Active recall on an SM-2 schedule. Cards you find hard come back sooner; cards you know disappear for weeks. Generate them straight from a lecture note.</div>
+    </div>
+
+    <div class="stats" id="cardStats"></div>
+
+    <div class="card" id="studyCard">
+      <div class="card-h"><h2>Study</h2><div class="hact"><span class="pill" id="deckPill">all decks</span></div></div>
+      <div id="cardStage"></div>
+    </div>
+
+    <div class="card">
+      <div class="card-h"><h2>Add a card</h2></div>
+      <form class="form-grid" data-form="card" autocomplete="off">
+        <div class="field">
+          <label class="label" for="cdFront">Front (question)</label>
+          <input id="cdFront" name="front" type="text" placeholder="What drives the sodium-potassium pump?" required maxlength="300">
+        </div>
+        <div class="field">
+          <label class="label" for="cdBack">Back (answer)</label>
+          <input id="cdBack" name="back" type="text" placeholder="ATP hydrolysis moves 3 Na⁺ out and 2 K⁺ in" required maxlength="400">
+        </div>
+        <div class="field">
+          <label class="label" for="cdDeck">Deck</label>
+          <input id="cdDeck" name="deck" type="text" placeholder="BIOL210" maxlength="32" list="deckList">
+        </div>
+        <div class="field" style="justify-content:flex-end">
+          <button class="btn primary" type="submit">Add card</button>
+        </div>
+      </form>
+      <datalist id="deckList"></datalist>
+    </div>
+
+    <div class="card">
+      <div class="card-h"><h2>All cards</h2>
+        <div class="hact">
+          <select id="cdFilter" style="width:auto;min-height:36px;font-size:.84rem"><option value="">All decks</option></select>
+        </div>
+      </div>
+      <div class="list" id="cardList"></div>
+    </div>
+  </div>
+</section>
+
+<!-- ============ HABITS ============ -->
+<section class="view" id="v-habits">
+  <div class="wrap">
+    <div class="view-h">
+      <h1>Habits</h1>
+      <div class="hact"><span class="chip info">added feature 2</span></div>
+      <div class="sub">The unglamorous behaviours that decide the grade: sleep, reading, problem sets. Tap once a day; streaks do the nagging.</div>
+    </div>
+
+    <div class="card">
+      <div class="card-h"><h2>Add a habit</h2></div>
+      <form class="inline-form" data-form="habit" autocomplete="off">
+        <div class="field">
+          <label class="label" for="hbName">Habit</label>
+          <input id="hbName" name="name" type="text" placeholder="Read 20 pages" required maxlength="60">
+        </div>
+        <div class="field" style="justify-content:flex-end">
+          <button class="btn primary" type="submit">Add habit</button>
+        </div>
+      </form>
+    </div>
+
+    <div class="card">
+      <div class="card-h"><h2>Last 14 days</h2><div class="hact"><span class="pill" id="hbToday"></span></div></div>
+      <div class="list" id="habitList"></div>
+    </div>
+  </div>
+</section>
+
+<!-- ============ BACKUP ============ -->
+<section class="view" id="v-backup">
+  <div class="wrap">
+    <div class="view-h">
+      <h1>Backup &amp; data</h1>
+      <div class="hact"><span class="chip info">added feature 3</span></div>
+      <div class="sub">Everything lives in this browser's localStorage. Clearing site data deletes it, so export a JSON backup before you switch device or browser.</div>
+    </div>
+
+    <div class="card">
+      <div class="card-h"><h2>Export</h2></div>
+      <p class="small muted" style="margin-top:-4px">Downloads one JSON file with every task, note, card, grade and setting. Keep it in your cloud drive.</p>
+      <div class="row">
+        <button class="btn primary" id="btnExport"><svg viewBox="0 0 24 24"><path d="M12 3v12M7 10l5 5 5-5"/><path d="M4 21h16"/></svg>Download backup</button>
+        <button class="btn" id="btnCopyJson">Copy JSON</button>
+        <span class="pill" id="lastBackup">never exported</span>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-h"><h2>Import</h2></div>
+      <p class="small muted" style="margin-top:-4px">Choose a Cadence backup file. You can merge it into what you have, or replace everything.</p>
+      <div class="field" style="margin-bottom:10px">
+        <label class="label" for="importFile">Backup file (.json)</label>
+        <input id="importFile" type="file" accept="application/json,.json" style="padding:8px">
+      </div>
+      <div class="row">
+        <button class="btn" id="btnImportMerge">Merge into current data</button>
+        <button class="btn danger" id="btnImportReplace">Replace all data</button>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-h"><h2>Storage</h2></div>
+      <div id="storageInfo"></div>
+      <div class="row" style="margin-top:12px">
+        <button class="btn danger" id="btnWipe">Erase everything</button>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ============ DOCS ============ -->
+<section class="view" id="v-docs">
+  <div class="wrap">
+    <div class="view-h">
+      <h1>Documentation</h1>
+      <div class="sub">What each feature does, what it needs to run, and how it behaves when that thing is missing.</div>
+    </div>
+
+    <div class="card doc">
+      <h2 style="font-size:1.15rem">Quick model of the app</h2>
+      <p>Cadence is one HTML file. There is no server, no account and no analytics. Every record you create is written to <span class="kbd">localStorage</span> under the key <span class="kbd">cadence.v1</span> the moment you save it, and read back when the page loads. That is why data survives a reload — and why it does not follow you to another browser unless you export a backup.</p>
+      <div class="warn-box"><b>One-device data.</b> Private/incognito windows, "clear site data", and iOS Safari's 7-day eviction for unused sites can all wipe localStorage. Export a backup weekly if the work matters.</div>
+
+      <h3>1. Daily plan</h3>
+      <p>Tasks get a priority (high / medium / low), course, estimate and a date. The Today screen shows the current day's list sorted by priority, with a completion bar; the plan view can move between days, carry unfinished work to tomorrow, and shows the week at a glance. Priority beats due date in sorting because a high-priority task due Friday deserves today's attention more than a low-priority one due tomorrow.</p>
+      <p class="small muted"><b>Needs:</b> nothing. <b>Without anything:</b> fully functional offline.</p>
+
+      <h3>2. Study reminders</h3>
+      <p>Two jobs. <b>Deadline alerts:</b> add an exam or deadline and it shows a countdown chip that turns amber at 7 days and red at 2 days, plus appears in the Today "due soon" panel. <b>Spaced repetition:</b> give a topic and a first study date, pick an interval ladder (1·3·7·14·30 days by default), and Cadence creates one reminder per interval. Tick each off as you do it.</p>
+      <p class="small muted"><b>Needs:</b> optional browser notification permission for system alerts. <b>Without it:</b> alerts still appear in-app on every visit — the app checks on load and every 60 seconds while open.</p>
+
+      <h3>3. Lecture notes — recording, transcription, summary, questions</h3>
+      <p><b>Recording</b> uses <span class="kbd">MediaRecorder</span>, which works in Chrome, Edge, Firefox and Safari 14.1+. You get a timer, a stop button and a downloadable audio file for that session.</p>
+      <p><b>Live transcription</b> uses the <span class="kbd">Web Speech API</span> (<span class="kbd">SpeechRecognition</span>). Support: Chrome and Edge on desktop and Android, Safari 14.1+ with the WebKit prefix. <b>Firefox does not support it.</b> It is also usually unavailable on plain <span class="kbd">http://</span> — a secure context is required.</p>
+      <p><b>Summarising</b> and <b>question generation</b> run locally with a classical extractive algorithm: sentences are scored by term frequency, position and length, then the top ones are kept; questions are built from definitional and causal sentences plus keyword cloze cards. No model API, no key, no upload.</p>
+      <p class="small muted"><b>Without a microphone or speech support:</b> type or paste the lecture into the same box and press Summarise / Generate questions — the exact same pipeline runs. The app states which capabilities it detected at the top of the view rather than failing silently.</p>
+
+      <h3>4. Assignments</h3>
+      <p>Title, course, due date, weight and status (not started → in progress → submitted → graded). Overdue items get a red edge; the stats row totals open work, work due this week and the percentage of your grade already submitted. Filter between open, submitted and all.</p>
+      <p class="small muted"><b>Needs:</b> nothing.</p>
+
+      <h3>5. Focus &amp; distraction control</h3>
+      <p>A Pomodoro timer with 25 / 5 / 15-minute modes, a countdown ring, and automatic hand-off from focus to break. Before starting you write down whatever is pulling at you — the point is to park it, not fight it. Completed focus sessions are logged with the linked task, and daily minutes are totalled on the screen and on Today.</p>
+      <p><b>Distraction-free</b> opens a full-screen timer that covers the app, so the next tab switch is a conscious decision.</p>
+      <p class="small muted"><b>Needs:</b> nothing. The timer uses <span class="kbd">setInterval</span> and keeps accurate time from timestamps even if the tab is throttled in the background.</p>
+
+      <h3>6. Email &amp; file organization</h3>
+      <p><b>File naming:</b> fill in course, type, title, date, version and initials, choose a pattern, and get a normalised filename — lowercase, spaces to hyphens, accents stripped, unsafe characters removed, ISO dates, zero-padded versions. Saved names build a small log so you can see your own consistency.</p>
+      <p><b>Gmail filters:</b> the app builds a Gmail search query and a matching filter XML in Gmail's import format. Download the <span class="kbd">.xml</span>, then in Gmail go to Settings → Filters and Blocked Addresses → Import filters → Choose file → Create filters. You review each one before it is applied.</p>
+      <p class="small muted"><b>Needs:</b> no API key and no OAuth — and it never asks for your password. <b>Without Gmail access:</b> the search query still works when pasted into Gmail's own search box, and the file-naming tool is entirely offline.</p>
+
+      <h3>7. Weekly review</h3>
+      <p>One card per ISO week. It shows the week's real numbers (tasks completed, focus minutes, notes captured, cards reviewed, reminders cleared), lets you tick off what carries into next week, and stores three free-text fields: wins, friction, and three commitments. Past weeks stay readable, so you can see whether the same friction keeps recurring.</p>
+      <p class="small muted"><b>Needs:</b> nothing.</p>
+
+      <h3>8. Grades &amp; GPA</h3>
+      <p>Add courses with credit hours, then add assessments with a score and a weight. Cadence computes the weighted course percentage, a letter grade, and a credit-weighted GPA. Assessments without a score are excluded so the GPA reflects graded work only.</p>
+      <p><b>What-if</b> projects a course percentage if you score a given mark on the outstanding weight, so you can see what you actually need on the final.</p>
+      <p class="small muted"><b>Needs:</b> nothing. This is your own arithmetic, not an official transcript.</p>
+
+      <h3>Added feature 1 — Flashcards (spaced repetition)</h3>
+      <p><b>Why:</b> rereading notes feels productive but barely moves retention; retrieval practice does. Cards use a simplified SM-2 algorithm — each rating (Again / Hard / Good / Easy) adjusts the interval and ease factor, so weak cards return in minutes and strong ones in weeks. Cards can be created by hand or generated in bulk from a lecture note's generated questions.</p>
+      <p class="small muted"><b>Needs:</b> nothing.</p>
+
+      <h3>Added feature 2 — Habit streaks</h3>
+      <p><b>Why:</b> grades are downstream of boring daily behaviour — sleep, reading, showing up. A 14-day grid with a current streak and a best streak makes a missed day visible without a lecture. Consistency percentage is shown per habit so a broken streak does not erase the evidence of the good weeks.</p>
+      <p class="small muted"><b>Needs:</b> nothing.</p>
+
+      <h3>Added feature 3 — Backup &amp; data export</h3>
+      <p><b>Why:</b> a localStorage-only app is exactly as durable as one browser profile. JSON export makes the data portable between laptop, phone and browser, and makes "I cleared my cookies" a ten-second fix instead of a lost semester. Merge keeps both sets; replace wipes first. Both paths validate the file and refuse anything that is not a Cadence backup.</p>
+      <p class="small muted"><b>Needs:</b> nothing.</p>
+
+      <h3>A typical day</h3>
+      <ol>
+        <li><b>Morning — plan (5 min).</b> Open <b>Today</b>, then <b>Daily plan</b>. Add the day's real work with priorities. Three high-priority items is a full day; everything else is optional. Check <b>Reminders</b> for countdowns and clear any due review.</li>
+        <li><b>Lecture — capture.</b> Open <b>Lecture notes</b>, hit record, and let the transcript fill in. If speech recognition is unavailable the banner tells you, and you type instead. Press <b>Summarise</b> and <b>Generate questions</b>, then save.</li>
+        <li><b>Between classes — recall (10 min).</b> Go to <b>Flashcards</b> and clear the due queue. "Generate questions" on a note can push straight into new cards.</li>
+        <li><b>Deep work — focus.</b> Pick the task in <b>Focus timer</b>, park your distractions in the box, and run a 25-minute block. Take the break; the timer hands off automatically.</li>
+        <li><b>Afternoon — submissions.</b> Check <b>Assignments</b>, move anything you finished to submitted, and look at what is due in the next three days.</li>
+        <li><b>Evening — file and log.</b> Name today's files in <b>Files &amp; email</b> so tomorrow's search works. Tick your <b>Habits</b>.</li>
+        <li><b>Sunday — review.</b> Open <b>Weekly review</b>, read the numbers, write wins and friction, set three commitments. Then <b>Backup</b> → download JSON.</li>
+      </ol>
+
+      <h3>Data &amp; permissions summary</h3>
+      <div class="tw">
+        <table>
+          <thead><tr><th>Feature</th><th>External service / key</th><th>Permission</th><th>If unavailable</th></tr></thead>
+          <tbody>
+            <tr><td>Daily plan, assignments, grades, habits, review, flashcards, backup</td><td>None</td><td>None</td><td>Works offline</td></tr>
+            <tr><td>Audio recording</td><td>None</td><td>Microphone</td><td>Type or paste notes instead</td></tr>
+            <tr><td>Live transcription</td><td>Browser Web Speech API (Chrome / Edge / Safari)</td><td>Microphone + secure context</td><td>Manual text entry; flagged in-app</td></tr>
+            <tr><td>Summaries &amp; questions</td><td>None — runs locally</td><td>None</td><td>Falls back to first-sentence extract if text is very short</td></tr>
+            <tr><td>Deadline notifications</td><td>Browser Notification API</td><td>Notifications (optional)</td><td>In-app alerts only</td></tr>
+            <tr><td>Gmail filters</td><td>None — local XML export</td><td>None (you import in Gmail)</td><td>Copy the search query instead</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <p class="small muted" style="margin-top:10px">Cadence does not send your data anywhere. There is no fetch call to a third party in this file.</p>
+    </div>
+  </div>
+</section>
+
+</main>
+
+<!-- quick add modal -->
+<div class="modal-bg" id="modalBg">
+  <div class="modal" role="dialog" aria-modal="true" aria-labelledby="modalTitle">
+    <h3 id="modalTitle">Quick add task</h3>
+    <div id="modalBody"></div>
+  </div>
+</div>
+
+<!-- focus fullscreen -->
+<div class="fm" id="fm">
+  <button class="icon-btn ex" id="fmClose" aria-label="Exit distraction-free mode">
+    <svg viewBox="0 0 24 24"><path d="M18 6L6 18M6 6l12 12"/></svg>
+  </button>
+  <div class="ring" id="fmRing">
+    <svg viewBox="0 0 200 200" aria-hidden="true">
+      <circle class="bg" cx="100" cy="100" r="90" stroke-width="10"></circle>
+      <circle class="fg" id="fmFg" cx="100" cy="100" r="90" stroke-width="10" stroke-dasharray="565.49" stroke-dashoffset="0"></circle>
+    </svg>
+    <div class="ring-in"><div class="clock" id="fmClock">25:00</div><div class="mode" id="fmMode">Focus</div></div>
+  </div>
+  <div class="fm-note" id="fmTask">Nothing but this block.</div>
+  <div class="row" style="justify-content:center">
+    <button class="btn primary" id="fmToggle">Start</button>
+  </div>
+</div>
+
+<script>
+/* =========================================================
+   Cadence — single-file student OS
+   No backend. No network calls. Data lives in localStorage.
+   ========================================================= */
+(function(){
+"use strict";
+
+/* ---------- storage ---------- */
+var KEY = "cadence.v1";
+
+function fresh(){
+  return {
+    v: 1,
+    tasks: [], reminders: [], notes: [], assignments: [],
+    sessions: [], filenames: [], filters: [], reviews: [],
+    courses: [], cards: [], habits: [],
+    settings: { theme: "light", lastBackup: null, notif: false }
+  };
+}
+
+var S = fresh();
+
+function load(){
+  try{
+    var raw = localStorage.getItem(KEY);
+    if(!raw) return;
+    var p = JSON.parse(raw);
+    if(typeof p !== "object" || !p) return;
+    var base = fresh();
+    for(var k in base){
+      if(k === "settings"){
+        S.settings = Object.assign(base.settings, p.settings || {});
+      } else if(Array.isArray(p[k])){ S[k] = p[k]; }
+    }
+    S.v = 1;
+  }catch(e){
+    console.warn("load failed", e);
+  }
+}
+
+var saveTimer = null;
+function save(){
+  try{
+    localStorage.setItem(KEY, JSON.stringify(S));
+    var el = document.getElementById("saveWhen");
+    if(el) el.textContent = " · " + new Date().toLocaleTimeString([], {hour:"2-digit", minute:"2-digit"});
+  }catch(e){
+    toast("Could not save — storage may be full or blocked.", "bad");
+  }
+}
+
+/* ---------- utils ---------- */
+function pad(n){ return String(n).padStart(2, "0"); }
+function iso(d){ return d.getFullYear() + "-" + pad(d.getMonth()+1) + "-" + pad(d.getDate()); }
+function today(){ return iso(new Date()); }
+function parseISO(s){ var p = String(s).split("-").map(Number); return new Date(p[0], (p[1]||1)-1, p[2]||1); }
+function addDays(s, n){ var d = parseISO(s); d.setDate(d.getDate()+n); return iso(d); }
+function dayDiff(a, b){ return Math.round((parseISO(b) - parseISO(a)) / 86400000); }
+function uid(){ return Date.now().toString(36) + Math.random().toString(36).slice(2,7); }
+function esc(s){
+  return String(s == null ? "" : s)
+    .replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;")
+    .replace(/"/g,"&quot;").replace(/'/g,"&#39;");
+}
+function $(id){ return document.getElementById(id); }
+function mmss(sec){
+  sec = Math.max(0, Math.round(sec));
+  return pad(Math.floor(sec/60)) + ":" + pad(sec%60);
+}
+function niceDate(s){
+  if(!s) return "—";
+  var d = parseISO(s);
+  return d.toLocaleDateString(undefined, {weekday:"short", day:"numeric", month:"short"});
+}
+function isoWeek(d){
+  var t = new Date(Date.UTC(d.getFullYear(), d.getMonth(), d.getDate()));
+  var dn = (t.getUTCDay()+6)%7;
+  t.setUTCDate(t.getUTCDate()-dn+3);
+  var first = new Date(Date.UTC(t.getUTCFullYear(),0,4));
+  var fn = (first.getUTCDay()+6)%7;
+  first.setUTCDate(first.getUTCDate()-fn+3);
+  return t.getUTCFullYear() + "-W" + pad(1+Math.round((t-first)/(7*86400000)));
+}
+function mondayOf(dateStr){
+  var d = parseISO(dateStr);
+  var dn = (d.getDay()+6)%7;
+  d.setDate(d.getDate()-dn);
+  return iso(d);
+}
+function toast(msg, kind){
+  var box = $("toasts"); if(!box) return;
+  var t = document.createElement("div");
+  t.className = "toast" + (kind ? " " + kind : "");
+  t.textContent = msg;
+  box.appendChild(t);
+  setTimeout(function(){ t.classList.add("out"); setTimeout(function(){ t.remove(); }, 260); }, 3000);
+}
+function download(name, text, type){
+  var blob = new Blob([text], {type: type || "application/json"});
+  var url = URL.createObjectURL(blob);
+  var a = document.createElement("a");
+  a.href = url; a.download = name;
+  document.body.appendChild(a); a.click();
+  setTimeout(function(){ URL.revokeObjectURL(url); a.remove(); }, 600);
+}
+function copyText(text){
+  if(navigator.clipboard && navigator.clipboard.writeText){
+    return navigator.clipboard.writeText(text).then(function(){ toast("Copied to clipboard", "ok"); })
+      .catch(function(){ fallbackCopy(text); });
+  }
+  fallbackCopy(text);
+}
+function fallbackCopy(text){
+  var ta = document.createElement("textarea");
+  ta.value = text; ta.style.position = "fixed"; ta.style.opacity = "0";
+  document.body.appendChild(ta); ta.select();
+  try{ document.execCommand("copy"); toast("Copied to clipboard", "ok"); }
+  catch(e){ toast("Copy failed — select and copy manually.", "bad"); }
+  ta.remove();
+}
+
+/* =========================================================
+   ROUTER
+   ========================================================= */
+var currentView = "dash";
+
+function showView(name){
+  var target = $("v-" + name);
+  if(!target) return;
+  currentView = name;
+  var views = document.querySelectorAll(".view");
+  for(var i=0;i<views.length;i++) views[i].classList.remove("active");
+  target.classList.add("active");
+  var navs = document.querySelectorAll(".nav-item");
+  for(var j=0;j<navs.length;j++){
+    navs[j].classList.toggle("active", navs[j].getAttribute("data-nav") === name);
+  }
+  closeMenu();
+  window.scrollTo({top:0, behavior:"instant" in window ? "instant" : "auto"});
+  renderAll();
+}
+
+function closeMenu(){
+  var sb = $("sidebar"), sc = $("scrim"), mb = document.querySelector(".menu-btn");
+  if(sb) sb.classList.remove("open");
+  if(sc) sc.classList.remove("on");
+  if(mb) mb.setAttribute("aria-expanded","false");
+  document.body.style.overflow = "";
+}
+function toggleMenu(){
+  var sb = $("sidebar"), sc = $("scrim"), mb = document.querySelector(".menu-btn");
+  var open = !sb.classList.contains("open");
+  sb.classList.toggle("open", open);
+  sc.classList.toggle("on", open);
+  if(mb) mb.setAttribute("aria-expanded", String(open));
+  document.body.style.overflow = open ? "hidden" : "";
+}
+
+/* =========================================================
+   DERIVED HELPERS
+   ========================================================= */
+function openTasks(){ return S.tasks.filter(function(t){ return !t.done; }); }
+function tasksFor(dateStr){
+  return S.tasks.filter(function(t){ return t.date === dateStr; })
+    .sort(function(a,b){
+      if(a.done !== b.done) return a.done ? 1 : -1;
+      if(a.prio !== b.prio) return a.prio - b.prio;
+      return (a.created||0) - (b.created||0);
+    });
+}
+function openReminders(){ return S.reminders.filter(function(r){ return !r.done; }); }
+function dueCards(){
+  var now = Date.now();
+  return S.cards.filter(function(c){ return (c.due||0) <= now; });
+}
+function courseNames(){
+  var set = {};
+  S.courses.forEach(function(c){ if(c.name) set[c.name.split("—")[0].trim()] = 1; });
+  S.tasks.forEach(function(t){ if(t.course) set[t.course] = 1; });
+  S.assignments.forEach(function(a){ if(a.course) set[a.course] = 1; });
+  return Object.keys(set).sort();
+}
+
+/* =========================================================
+   TODAY
+   ========================================================= */
+function renderDash(){
+  var now = new Date();
+  var h = now.getHours();
+  var greet = h < 12 ? "Good morning." : (h < 18 ? "Good afternoon." : "Good evening.");
+  var el = $("dashGreet"); if(el) el.textContent = greet;
+
+  var t = today();
+  var day = tasksFor(t);
+  var done = day.filter(function(x){ return x.done; }).length;
+  var sub = $("dashSub");
+  if(sub){
+    var bits = [];
+    bits.push(now.toLocaleDateString(undefined, {weekday:"long", day:"numeric", month:"long"}));
+    bits.push(day.length ? (day.length - done) + " of " + day.length + " tasks left" : "no tasks planned yet");
+    var dueR = openReminders().filter(function(r){ return r.date && dayDiff(t, r.date) <= 3; }).length;
+    if(dueR) bits.push(dueR + " reminder" + (dueR>1?"s":"") + " inside 3 days");
+    sub.textContent = bits.join(" · ");
+  }
+  var pct = day.length ? Math.round(done/day.length*100) : 0;
+  var bar = $("dashBar"); if(bar) bar.style.width = pct + "%";
+  var gn = $("dashGoalNum"); if(gn) gn.textContent = done + "/" + day.length;
+  var gl = $("dashGoalLbl"); if(gl) gl.textContent = day.length ? pct + "% done" : "Today";
+
+  // stats
+  var mins = S.sessions.filter(function(s){ return iso(new Date(s.ts)) === t; })
+    .reduce(function(a,s){ return a + (s.mins||0); }, 0);
+  var nextDl = openReminders().filter(function(r){ return r.kind !== "review" && r.date >= t; })
+    .sort(function(a,b){ return a.date < b.date ? -1 : 1; })[0];
+  var dc = dueCards().length;
+  var openAs = S.assignments.filter(function(a){ return a.status === "todo" || a.status === "doing"; }).length;
+
+  $("dashStats").innerHTML = [
+    statCard(done + "<small>/" + day.length + "</small>", "Tasks done today"),
+    statCard(mins + "<small>m</small>", "Focus time today"),
+    statCard(dc, "Cards due"),
+    statCard(nextDl ? Math.max(0, dayDiff(t, nextDl.date)) + "<small>d</small>" : "—", nextDl ? "To " + shortName(nextDl.title) : "No deadline set")
+  ].join("");
+
+  // attention
+  var attn = [];
+  var overdue = openTasks().filter(function(x){ return x.date < t; });
+  if(overdue.length){
+    attn.push('<div class="attn"><b>' + overdue.length + ' task' + (overdue.length>1?"s":"") +
+      ' slipped</b> from earlier days. <button class="btn sm" data-act="pullOverdue" style="margin-left:6px">Move to today</button></div>');
+  }
+  var urgent = openReminders().filter(function(r){ return r.date >= t && dayDiff(t,r.date) <= 2; });
+  if(urgent.length){
+    attn.push('<div class="attn" style="border-left-color:var(--danger);background:var(--danger-soft)"><b>' +
+      esc(shortName(urgent[0].title)) + '</b> is in ' + Math.max(0, dayDiff(t, urgent[0].date)) +
+      ' day' + (dayDiff(t,urgent[0].date)===1?"":"s") + '. <button class="btn sm" data-nav="reminders" style="margin-left:6px">See reminders</button></div>');
+  }
+  $("dashAttn").innerHTML = attn.join("");
+
+  // today list
+  var dl = $("dashTasks");
+  if(!day.length){
+    dl.innerHTML = '<div class="empty"><b>Nothing planned yet</b>Add two or three tasks that would make today count.<div style="margin-top:10px"><button class="btn primary sm" data-act="quickAdd">Add the first one</button></div></div>';
+  } else {
+    dl.innerHTML = day.slice(0,7).map(taskRow).join("");
+  }
+
+  // due soon
+  var soon = S.assignments.filter(function(a){
+    return (a.status === "todo" || a.status === "doing") && a.due;
+  }).sort(function(a,b){ return a.due < b.due ? -1 : 1; }).slice(0,5);
+  var duEl = $("dashDue");
+  duEl.innerHTML = soon.length ? soon.map(function(a){
+    var d = dayDiff(t, a.due);
+    var cls = d < 0 ? "hi" : (d <= 2 ? "hi" : (d <= 7 ? "med" : "lo"));
+    var lbl = d < 0 ? Math.abs(d) + "d overdue" : (d === 0 ? "today" : (d === 1 ? "tomorrow" : d + "d"));
+    return '<div class="item ' + (d<0?"overdue":"") + '"><div class="grow"><div class="title">' + esc(a.title) + '</div>' +
+      '<div class="meta"><span class="chip ' + cls + '">' + lbl + '</span>' +
+      (a.course ? '<span>' + esc(a.course) + '</span>' : '') +
+      (a.weight ? '<span>' + a.weight + '% of grade</span>' : '') + '</div></div></div>';
+  }).join("") : '<div class="empty" style="padding:18px 10px">No assignments due in the next stretch.</div>';
+
+  // cards
+  var cEl = $("dashCards");
+  var total = S.cards.length;
+  if(!total){
+    cEl.innerHTML = '<div class="empty" style="padding:18px 10px"><b>No cards yet</b>Turn a lecture note into cards.</div>';
+  } else {
+    var p = Math.round((total - dc) / total * 100);
+    cEl.innerHTML = '<div class="track-row"><span>' + dc + ' due of ' + total + '</span>' +
+      '<div class="bar accent"><i style="width:' + (100-p) + '%"></i></div></div>' +
+      '<div style="margin-top:12px"><button class="btn primary sm wide" data-nav="cards">' +
+      (dc ? "Study " + dc + " card" + (dc>1?"s":"") : "All caught up — add cards") + '</button></div>';
+  }
+}
+
+function shortName(s){
+  s = String(s || "");
+  var parts = s.split(/[—\-–:]/);
+  var out = parts[0].trim();
+  if(parts.length > 1 && parts[1] && parts[1].trim().length > 6) out = parts[1].trim();
+  return out.length > 34 ? out.slice(0,33) + "…" : out;
+}
+function statCard(n, l){
+  return '<div class="stat"><div class="n">' + n + '</div><div class="l">' + esc(l) + '</div></div>';
+}
+function taskRow(t){
+  var isToday = t.date === today();
+  var overdue = !t.done && t.date < today();
+  return '<div class="item ' + (t.done?"done":"") + ' ' + (overdue?"overdue":"") + '">' +
+    '<button class="tick" data-act="tgTask" data-id="' + t.id + '" aria-checked="' + (t.done?"true":"false") + '" aria-label="Toggle task"><svg viewBox="0 0 24 24"><path d="M20 6L9 17l-5-5"/></svg></button>' +
+    '<div class="grow"><div class="title">' + esc(t.title) + '</div>' +
+    '<div class="meta">' + prioChip(t.prio) +
+    (t.course ? '<span>' + esc(t.course) + '</span>' : '') +
+    (t.est ? '<span>' + t.est + 'm</span>' : '') +
+    (!isToday ? '<span>' + niceDate(t.date) + '</span>' : '') +
+    '</div></div>' +
+    '<button class="icon-btn" data-act="delTask" data-id="' + t.id + '" aria-label="Delete task" style="width:34px;height:34px">' +
+    '<svg viewBox="0 0 24 24"><path d="M18 6L6 18M6 6l12 12"/></svg></button></div>';
+}
+function prioChip(p){
+  if(p === 1) return '<span class="chip hi">High</span>';
+  if(p === 2) return '<span class="chip med">Medium</span>';
+  return '<span class="chip lo">Low</span>';
+}
+
+/* =========================================================
+   DAILY PLAN
+   ========================================================= */
+var planDate = today();
+
+function renderPlan(){
+  var t = planDate;
+  $("planDateTitle").textContent = t === today() ? "Plan for today" :
+    (t === addDays(today(),1) ? "Plan for tomorrow" : "Plan for " + niceDate(t));
+  $("planDayName").textContent = t === today() ? "today" : (t === addDays(today(),1) ? "tomorrow" : niceDate(t));
+  $("planDatePill").textContent = niceDate(t);
+  var dEl = $("taskDate"); if(dEl) dEl.value = t;
+
+  var list = tasksFor(t);
+  var done = list.filter(function(x){ return x.done; }).length;
+  var mins = list.reduce(function(a,x){ return a + (Number(x.est)||0); }, 0);
+  var high = list.filter(function(x){ return x.prio === 1 && !x.done; }).length;
+  $("planStats").innerHTML = [
+    statCard(list.length, "Tasks planned"),
+    statCard(done + "<small>/" + list.length + "</small>", "Completed"),
+    statCard(high, "High priority left"),
+    statCard(mins + "<small>m</small>", "Estimated load")
+  ].join("");
+
+  $("planList").innerHTML = list.length ? list.map(taskRow).join("") :
+    '<div class="empty"><b>Empty day</b>Add a task above. If you are unsure, start with the smallest thing you are avoiding.</div>';
+
+  // week strip
+  var mon = mondayOf(t);
+  var html = "";
+  for(var i=0;i<7;i++){
+    var d = addDays(mon, i);
+    var dayTasks = tasksFor(d);
+    var dd = dayTasks.filter(function(x){ return x.done; }).length;
+    var p = dayTasks.length ? Math.round(dd/dayTasks.length*100) : 0;
+    html += '<div class="item" style="cursor:pointer" data-act="gotoDay" data-date="' + d + '">' +
+      '<div style="width:52px;flex:0 0 auto"><div class="small" style="font-weight:600">' +
+      parseISO(d).toLocaleDateString(undefined,{weekday:"short"}) + '</div>' +
+      '<div class="tiny muted">' + parseISO(d).getDate() + '/' + (parseISO(d).getMonth()+1) + '</div></div>' +
+      '<div class="grow"><div class="track-row"><div class="bar' + (d===today()?' accent':'') + '"><i style="width:' + p + '%"></i></div>' +
+      '<span class="nowrap">' + dd + '/' + dayTasks.length + '</span></div></div>' +
+      (d === today() ? '<span class="chip info">today</span>' : '') + '</div>';
+  }
+  $("planWeek").innerHTML = html;
+
+  var dl = $("courseList");
+  if(dl) dl.innerHTML = courseNames().map(function(c){ return '<option value="' + esc(c) + '">'; }).join("");
+  var dl2 = $("deckList");
+  if(dl2){
+    var decks = {};
+    S.cards.forEach(function(c){ if(c.deck) decks[c.deck]=1; });
+    dl2.innerHTML = Object.keys(decks).map(function(c){ return '<option value="' + esc(c) + '">'; }).join("");
+  }
+}
+
+/* =========================================================
+   REMINDERS
+   ========================================================= */
+var remFilter = "open";
+
+function daysLabel(dateStr){
+  var d = dayDiff(today(), dateStr);
+  if(d < 0) return {txt: Math.abs(d) + "d overdue", cls:"hi"};
+  if(d === 0) return {txt:"today", cls:"hi"};
+  if(d === 1) return {txt:"tomorrow", cls:"hi"};
+  if(d <= 7) return {txt:"in " + d + " days", cls:"med"};
+  return {txt:"in " + d + " days", cls:"lo"};
+}
+function kindLabel(k){
+  return {exam:"Exam", deadline:"Deadline", review:"Review", other:"Other"}[k] || "Other";
+}
+
+function renderReminders(){
+  var open = openReminders();
+  var urgent = open.filter(function(r){ return dayDiff(today(), r.date) <= 2; });
+  var week = open.filter(function(r){ return dayDiff(today(), r.date) <= 7 && dayDiff(today(), r.date) >= 0; });
+
+  var aEl = $("remAlerts");
+  if(urgent.length){
+    aEl.innerHTML = urgent.map(function(r){
+      var dl = daysLabel(r.date);
+      return '<div class="attn" style="border-left-color:var(--danger);background:var(--danger-soft)">' +
+        '<b>' + esc(r.title) + '</b> — ' + dl.txt + ' (' + niceDate(r.date) + ')' +
+        (r.course ? ' · ' + esc(r.course) : '') + '</div>';
+    }).join("");
+  } else {
+    aEl.innerHTML = week.length ?
+      '<div class="attn"><b>' + week.length + ' reminder' + (week.length>1?"s":"") + ' this week.</b> Nothing inside two days — a good moment to get ahead.</div>' : "";
+  }
+
+  var list = S.reminders.slice().sort(function(a,b){
+    if(a.done !== b.done) return a.done ? 1 : -1;
+    return a.date < b.date ? -1 : 1;
+  }).filter(function(r){
+    if(remFilter === "open") return !r.done;
+    if(remFilter === "done") return r.done;
+    return true;
+  });
+
+  $("remList").innerHTML = list.length ? list.map(function(r){
+    var dl = daysLabel(r.date);
+    return '<div class="item ' + (r.done?"done":"") + ' ' + (!r.done && dayDiff(today(),r.date) < 0 ? "overdue" : "") + '">' +
+      '<button class="tick" data-act="tgRem" data-id="' + r.id + '" aria-checked="' + (r.done?"true":"false") + '" aria-label="Toggle reminder"><svg viewBox="0 0 24 24"><path d="M20 6L9 17l-5-5"/></svg></button>' +
+      '<div class="grow"><div class="title">' + esc(r.title) + '</div>' +
+      '<div class="meta"><span class="chip ' + (r.done?"ok":dl.cls) + '">' + (r.done ? "done" : dl.txt) + '</span>' +
+      '<span class="chip out">' + kindLabel(r.kind) + '</span>' +
+      '<span>' + niceDate(r.date) + '</span>' +
+      (r.course ? '<span>' + esc(r.course) + '</span>' : '') +
+      '</div></div>' +
+      '<button class="icon-btn" data-act="delRem" data-id="' + r.id + '" aria-label="Delete reminder" style="width:34px;height:34px">' +
+      '<svg viewBox="0 0 24 24"><path d="M18 6L6 18M6 6l12 12"/></svg></button></div>';
+  }).join("") : '<div class="empty"><b>Nothing here</b>' +
+    (remFilter === "open" ? "Add a deadline or schedule a review above." : "No reminders in this filter.") + '</div>';
+
+  // queue bar
+  var reviews = S.reminders.filter(function(r){ return r.kind === "review"; });
+  var doneR = reviews.filter(function(r){ return r.done; }).length;
+  var p = reviews.length ? Math.round(doneR/reviews.length*100) : 0;
+  var dueN = open.filter(function(r){ return dayDiff(today(), r.date) <= 0; }).length;
+  $("remQueueBar").style.width = p + "%";
+  $("remQueueNum").textContent = dueN + " due";
+
+  var nb = $("notifyBtn");
+  if(nb){
+    if(!("Notification" in window)) { nb.textContent = "Alerts: unsupported"; nb.disabled = true; }
+    else if(Notification.permission === "granted"){ nb.textContent = "Alerts on"; nb.disabled = true; }
+    else if(Notification.permission === "denied"){ nb.textContent = "Alerts blocked"; nb.disabled = true; }
+    else nb.textContent = "Enable alerts";
+  }
+}
+
+/* =========================================================
+   LECTURE NOTES
+   ========================================================= */
+var SR = window.SpeechRecognition || window.webkitSpeechRecognition || null;
+var mediaRec = null, chunks = [], recStart = 0, recTimerId = null, recog = null, recOn = false, lastAudioUrl = null;
+
+var STOP = {};
+("a an the and or but if then than that this these those of in on at to for from with without by as is are was were be been being it its we you they he she i not no do does did has have had will would can could should may might must about into over under again more most some such only own same so too very just don now also there here when what which who whom whose how why where while both each few other any all because between through during before after above below up down out off further once").split(" ").forEach(function(w){ STOP[w]=1; });
+
+function sentencesOf(text){
+  var clean = String(text||"").replace(/\r/g," ").replace(/\s+/g," ").trim();
+  if(!clean) return [];
+  var raw = clean.match(/[^.!?]+[.!?]+|[^.!?]+$/g) || [];
+  return raw.map(function(s){ return s.trim(); })
+    .filter(function(s){ return s.split(" ").length >= 5 && s.length > 24; });
+}
+function summarize(text, maxN){
+  var sents = sentencesOf(text);
+  if(!sents.length) return [];
+  if(sents.length <= 2) return sents;
+  var freq = {}, words = String(text).toLowerCase().match(/[a-z][a-z'-]{1,}/g) || [];
+  words.forEach(function(w){ if(!STOP[w] && w.length > 2) freq[w] = (freq[w]||0)+1; });
+  var max = 1;
+  for(var k in freq) if(freq[k] > max) max = freq[k];
+  var scored = sents.map(function(s,i){
+    var ws = s.toLowerCase().match(/[a-z][a-z'-]{1,}/g) || [];
+    var sc = 0;
+    ws.forEach(function(w){ if(freq[w]) sc += freq[w]/max; });
+    sc = ws.length ? sc / Math.sqrt(ws.length) : 0;
+    if(i < 2) sc *= 1.3;
+    if(s.length > 240) sc *= 0.85;
+    return {s:s, i:i, sc:sc};
+  });
+  scored.sort(function(a,b){ return b.sc - a.sc; });
+  var n = maxN || Math.min(5, Math.max(2, Math.round(scored.length * 0.3)));
+  return scored.slice(0,n).sort(function(a,b){ return a.i - b.i; }).map(function(o){ return o.s; });
+}
+function makeQuestions(text){
+  var sents = sentencesOf(text), out = [], seen = {};
+  var defRe = /^(.{4,70}?)\s+(?:is|are|was|were|means|refers to|is defined as|can be defined as|describes)\s+(.{12,})$/i;
+  sents.forEach(function(s){
+    if(out.length >= 10) return;
+    var clean = s.replace(/^[-•*\s]+/, "").trim();
+    var m = clean.match(defRe);
+    if(m){
+      var subj = m[1].replace(/^(the|a|an)\s+/i,"").replace(/[.?!]$/,"").trim();
+      var key = subj.toLowerCase();
+      if(subj.length > 2 && !seen[key]){
+        seen[key] = 1;
+        out.push({q:"What is " + subj + "?", a: clean});
+        return;
+      }
+    }
+    if(/because|due to|leads to|results in|causes/i.test(clean)){
+      var head = clean.split(/because|due to|leads to|results in|causes/i)[0].trim();
+      if(head.length > 12 && head.length < 120){
+        var hk = "w:" + head.toLowerCase();
+        if(!seen[hk]){
+          seen[hk] = 1;
+          out.push({q:"Why " + head.replace(/^[A-Z]/, function(c){ return c.toLowerCase(); }) + "?", a: clean});
+        }
+      }
+    }
+  });
+  var freq = {};
+  (String(text).toLowerCase().match(/[a-z][a-z'-]{4,}/g) || []).forEach(function(w){ if(!STOP[w]) freq[w] = (freq[w]||0)+1; });
+  Object.keys(freq).sort(function(a,b){ return freq[b]-freq[a]; }).slice(0,8).forEach(function(k){
+    if(out.length >= 12) return;
+    var src = sents.filter(function(s){ return s.toLowerCase().indexOf(k) >= 0 && s.length < 210; })[0];
+    if(!src || seen["c:"+k]) return;
+    seen["c:"+k] = 1;
+    var blank = src.replace(new RegExp("\\b" + k + "\\b","i"), "____");
+    out.push({q:"Fill in the blank: " + blank, a:k});
+  });
+  return out.slice(0,12);
+}
+
+function sttBanner(){
+  var supported = !!SR;
+  var chip = $("sttChip");
+  if(chip){
+    chip.textContent = supported ? "speech: supported" : "speech: unavailable";
+    chip.className = "chip " + (supported ? "ok" : "out");
+  }
+  var recOk = !!(navigator.mediaDevices && window.MediaRecorder);
+  var b = $("sttBanner");
+  if(!b) return;
+  if(supported && recOk){ b.innerHTML = ""; return; }
+  var msgs = [];
+  if(!recOk) msgs.push("<b>Audio recording is unavailable</b> in this browser. You can still type or paste the lecture below — summary and question generation work exactly the same.");
+  if(!supported) msgs.push("<b>Live transcription is unavailable</b> here (Firefox has no Web Speech API, and Chrome/Edge require a secure <span class='mono'>https://</span> page). Recording may still work. Type or paste the lecture and use <b>Summarise</b> and <b>Generate questions</b> — both run locally with no API key.");
+  b.innerHTML = '<div class="warn-box" style="margin-bottom:14px">' + msgs.join("<br><br>") + '</div>';
+}
+
+function renderNotes(){
+  sttBanner();
+  var list = S.notes.slice().sort(function(a,b){ return (b.created||0)-(a.created||0); });
+  $("noteCount").textContent = list.length;
+  $("noteList").innerHTML = list.length ? list.map(function(n){
+    return '<div class="item"><div class="grow"><div class="title">' + esc(n.title || "Untitled note") + '</div>' +
+      '<div class="meta">' + (n.course ? '<span>' + esc(n.course) + '</span>' : '') +
+      '<span>' + new Date(n.created).toLocaleDateString() + '</span>' +
+      '<span>' + (n.body||"").split(/\s+/).filter(Boolean).length + ' words</span>' +
+      (n.questions && n.questions.length ? '<span class="chip info">' + n.questions.length + ' questions</span>' : '') +
+      '</div></div>' +
+      '<button class="btn sm" data-act="loadNote" data-id="' + n.id + '">Open</button>' +
+      '<button class="icon-btn" data-act="delNote" data-id="' + n.id + '" aria-label="Delete note" style="width:34px;height:34px">' +
+      '<svg viewBox="0 0 24 24"><path d="M18 6L6 18M6 6l12 12"/></svg></button></div>';
+  }).join("") : '<div class="empty"><b>No notes saved</b>Record a lecture or paste your notes, then press Save note.</div>';
+}
+
+function renderNoteOutput(sumParts, qParts){
+  var card = $("noteOutCard");
+  card.classList.remove("hide");
+  var sh = "";
+  if(sumParts && sumParts.length){
+    sh = '<h2 style="font-size:1rem;margin-bottom:8px">Summary</h2><ul style="padding-left:18px;margin:0 0 16px">' +
+      sumParts.map(function(s){ return '<li style="margin-bottom:7px;font-size:.93rem">' + esc(s) + '</li>'; }).join("") + '</ul>';
+  }
+  var qh = "";
+  if(qParts && qParts.length){
+    qh = '<h2 style="font-size:1rem;margin-bottom:8px">Study questions</h2>' +
+      '<div class="list">' + qParts.map(function(q){
+        return '<div class="item"><div class="grow"><div class="title">' + esc(q.q) + '</div>' +
+          '<div class="meta">' + esc(q.a) + '</div></div></div>';
+      }).join("") + '</div>' +
+      '<div class="row" style="margin-top:10px"><button class="btn sm" data-act="qsToCards">Send ' + qParts.length + ' to flashcards</button></div>';
+  }
+  $("noteSummary").innerHTML = sh;
+  $("noteQuestions").innerHTML = qh;
+  if(!sh && !qh) card.classList.add("hide");
+}
+
+/* ---- recording ---- */
+function startRecording(){
+  if(!(navigator.mediaDevices && navigator.mediaDevices.getUserMedia)){
+    toast("Microphone API unavailable in this browser.", "bad"); return;
+  }
+  navigator.mediaDevices.getUserMedia({audio:true}).then(function(stream){
+    chunks = [];
+    try{
+      mediaRec = new MediaRecorder(stream);
+    }catch(e){
+      toast("This browser cannot record audio.", "bad");
+      stream.getTracks().forEach(function(t){ t.stop(); });
+      return;
+    }
+    mediaRec.ondataavailable = function(e){ if(e.data && e.data.size) chunks.push(e.data); };
+    mediaRec.onstop = function(){
+      stream.getTracks().forEach(function(t){ t.stop(); });
+      if(chunks.length){
+        var blob = new Blob(chunks, {type: chunks[0].type || "audio/webm"});
+        if(lastAudioUrl) URL.revokeObjectURL(lastAudioUrl);
+        lastAudioUrl = URL.createObjectURL(blob);
+        var hint = $("recHint");
+        hint.innerHTML = 'Recording captured (' + Math.round(blob.size/1024) + ' KB). ' +
+          '<a href="' + lastAudioUrl + '" download="lecture-' + today() + '.webm">Download audio</a> — it is not stored in the app, only this page session.';
+      }
+      mediaRec = null;
+    };
+    mediaRec.start();
+    recStart = Date.now();
+    recTimerId = setInterval(paintRecTimer, 500);
+    paintRecTimer();
+    $("recBtn").classList.remove("accent");
+    $("recBtnLbl").textContent = "Stop recording";
+    $("recState").textContent = "· recording";
+    startSpeech();
+    toast("Recording. Speak, or type alongside.", "ok");
+  }).catch(function(err){
+    toast("Microphone permission denied: " + (err && err.name ? err.name : "error"), "bad");
+    $("recState").textContent = "· mic blocked — type instead";
+  });
+}
+function stopRecording(){
+  if(mediaRec && mediaRec.state !== "inactive") mediaRec.stop();
+  clearInterval(recTimerId); recTimerId = null;
+  stopSpeech();
+  var btn = $("recBtn");
+  if(btn){ btn.classList.add("accent"); }
+  $("recBtnLbl").textContent = "Start recording";
+  $("recState").textContent = "";
+}
+function paintRecTimer(){
+  var s = Math.floor((Date.now() - recStart)/1000);
+  var el = $("recTimer");
+  if(el) el.textContent = pad(Math.floor(s/60)) + ":" + pad(s%60);
+}
+function startSpeech(){
+  if(!SR) { $("recState").textContent = "· no live transcription in this browser"; return; }
+  try{
+    recog = new SR();
+    recog.continuous = true;
+    recog.interimResults = false;
+    recog.lang = navigator.language || "en-US";
+    recog.onresult = function(ev){
+      var txt = "";
+      for(var i = ev.resultIndex; i < ev.results.length; i++){
+        if(ev.results[i].isFinal) txt += ev.results[i][0].transcript + " ";
+      }
+      if(txt.trim()){
+        var ta = $("noteBody");
+        ta.value = (ta.value ? ta.value.replace(/\s+$/,"") + " " : "") + txt.trim();
+        ta.scrollTop = ta.scrollHeight;
+      }
+    };
+    recog.onerror = function(e){
+      if(e.error === "not-allowed" || e.error === "service-not-allowed"){
+        $("recState").textContent = "· transcription blocked — type instead";
+      } else if(e.error === "no-speech"){
+        /* ignore */
+      } else {
+        $("recState").textContent = "· transcription paused (" + e.error + ")";
+      }
+    };
+    recog.onend = function(){ if(recOn){ try{ recog.start(); }catch(e){} } };
+    recog.start();
+    recOn = true;
+  }catch(e){
+    $("recState").textContent = "· transcription could not start";
+  }
+}
+function stopSpeech(){
+  recOn = false;
+  if(recog){ try{ recog.stop(); }catch(e){} recog = null; }
+}
+
+/* =========================================================
+   ASSIGNMENTS
+   ========================================================= */
+var asFilter = "open";
+
+function renderAssignments(){
+  var t = today();
+  var openA = S.assignments.filter(function(a){ return a.status === "todo" || a.status === "doing"; });
+  var overdue = openA.filter(function(a){ return a.due && a.due < t; });
+  var week = openA.filter(function(a){ return a.due && dayDiff(t,a.due) >= 0 && dayDiff(t,a.due) <= 7; });
+  var weightDone = S.assignments.filter(function(a){ return a.status === "submitted" || a.status === "graded"; })
+    .reduce(function(s,a){ return s + (Number(a.weight)||0); }, 0);
+  $("asStats").innerHTML = [
+    statCard(openA.length, "Open"),
+    statCard(overdue.length, "Overdue"),
+    statCard(week.length, "Due in 7 days"),
+    statCard(weightDone + "<small>%</small>", "Grade weight submitted")
+  ].join("");
+
+  var list = S.assignments.slice().sort(function(a,b){
+    if(!a.due) return 1;
+    if(!b.due) return -1;
+    return a.due < b.due ? -1 : 1;
+  }).filter(function(a){
+    if(asFilter === "open") return a.status === "todo" || a.status === "doing";
+    if(asFilter === "submitted") return a.status === "submitted" || a.status === "graded";
+    return true;
+  });
+
+  $("asList").innerHTML = list.length ? list.map(function(a){
+    var d = a.due ? dayDiff(t, a.due) : null;
+    var dl = d === null ? {txt:"no date", cls:"lo"} : (d < 0 ? {txt: Math.abs(d)+"d late", cls:"hi"} :
+      d === 0 ? {txt:"today", cls:"hi"} : d === 1 ? {txt:"tomorrow", cls:"hi"} : d <= 7 ? {txt:"in "+d+"d", cls:"med"} : {txt:"in "+d+"d", cls:"lo"});
+    var opts = [["todo","Not started"],["doing","In progress"],["submitted","Submitted"],["graded","Graded"]];
+    return '<div class="item ' + (d !== null && d < 0 && a.status !== "submitted" && a.status !== "graded" ? "overdue" : "") + ' ' +
+      (a.status === "graded" || a.status === "submitted" ? "done" : "") + '">' +
+      '<div class="grow"><div class="title">' + esc(a.title) + '</div>' +
+      '<div class="meta"><span class="chip ' + dl.cls + '">' + dl.txt + '</span>' +
+      (a.course ? '<span>' + esc(a.course) + '</span>' : '') +
+      (a.weight ? '<span class="pill">' + a.weight + '%</span>' : '') +
+      (a.due ? '<span>' + niceDate(a.due) + '</span>' : '') +
+      '</div></div>' +
+      '<select data-act="asStatus" data-id="' + a.id + '" aria-label="Assignment status" style="width:auto;min-height:36px;font-size:.82rem">' +
+      opts.map(function(o){ return '<option value="' + o[0] + '"' + (a.status===o[0]?" selected":"") + '>' + o[1] + '</option>'; }).join("") +
+      '</select>' +
+      '<button class="icon-btn" data-act="delAs" data-id="' + a.id + '" aria-label="Delete assignment" style="width:34px;height:34px">' +
+      '<svg viewBox="0 0 24 24"><path d="M18 6L6 18M6 6l12 12"/></svg></button></div>';
+  }).join("") : '<div class="empty"><b>Nothing here</b>Add an assignment above, including its weight — that is what makes a to-do list a priority system.</div>';
+}
+
+/* =========================================================
+   FOCUS / POMODORO
+   ========================================================= */
+var P = { mode:"work", dur:25*60, left:25*60, running:false, endAt:0, tick:null };
+var DURS = {work:25*60, short:5*60, long:15*60};
+var MODE_LBL = {work:"Focus", short:"Short break", long:"Long break"};
+
+function setMode(m){
+  P.mode = m;
+  P.dur = DURS[m];
+  P.left = P.dur;
+  P.running = false;
+  P.endAt = 0;
+  clearInterval(P.tick); P.tick = null;
+  var segs = document.querySelectorAll("#pomoMode button");
+  for(var i=0;i<segs.length;i++) segs[i].classList.toggle("active", segs[i].getAttribute("data-mode") === m);
+  paintPomo();
+}
+function togglePomo(){
+  if(P.running){
+    P.running = false;
+    clearInterval(P.tick); P.tick = null;
+    paintPomo();
+    return;
+  }
+  P.running = true;
+  P.endAt = Date.now() + P.left * 1000;
+  P.tick = setInterval(function(){
+    var left = Math.round((P.endAt - Date.now())/1000);
+    if(left <= 0){
+      clearInterval(P.tick); P.tick = null;
+      P.running = false;
+      P.left = 0;
+      paintPomo();
+      completePomo();
+      return;
+    }
+    P.left = left;
+    paintPomo();
+  }, 250);
+  paintPomo();
+}
+function paintPomo(){
+  var txt = mmss(P.left);
+  var c = $("clock"); if(c) c.textContent = txt;
+  var fc = $("fmClock"); if(fc) fc.textContent = txt;
+  var ml = $("modeLbl"); if(ml) ml.textContent = MODE_LBL[P.mode];
+  var fm = $("fmMode"); if(fm) fm.textContent = MODE_LBL[P.mode];
+  var frac = P.dur ? (P.dur - P.left)/P.dur : 0;
+  var C = 2 * Math.PI * 90;
+  ["ringFg","fmFg"].forEach(function(id){
+    var el = $(id);
+    if(el){ el.style.strokeDasharray = C.toFixed(2); el.style.strokeDashoffset = (C * frac).toFixed(2); }
+  });
+  var ring = $("ring");
+  if(ring) ring.classList.toggle("warn", P.mode === "work" && P.left <= 60 && P.left > 0);
+  var bl = $("btnStartLbl"); if(bl) bl.textContent = P.running ? "Pause" : (P.left === P.dur ? "Start" : "Resume");
+  var bt = $("fmToggle"); if(bt) bt.textContent = P.running ? "Pause" : (P.left === P.dur ? "Start" : "Resume");
+}
+function completePomo(){
+  var mins = Math.round(P.dur/60);
+  if(P.mode === "work"){
+    var sel = $("focusTask");
+    var tid = sel ? sel.value : "";
+    var task = S.tasks.filter(function(t){ return t.id === tid; })[0];
+    S.sessions.unshift({
+      id: uid(), ts: Date.now(), mins: mins,
+      taskId: tid || "", taskTitle: task ? task.title : "Unassigned focus"
+    });
+    if(S.sessions.length > 200) S.sessions.length = 200;
+    save();
+    renderFocusMeta();
+    toast(mins + " minute block logged. Take the break.", "ok");
+    if(window.Notification && Notification.permission === "granted"){
+      try{ new Notification("Focus block complete", {body: mins + " minutes logged. Step away for a few."}); }catch(e){}
+    }
+    setMode("short");
+  } else {
+    toast("Break over. One more block?", "ok");
+    if(window.Notification && Notification.permission === "granted"){
+      try{ new Notification("Break finished", {body:"Back to it — one focused block."}); }catch(e){}
+    }
+    setMode("work");
+  }
+}
+
+function renderFocusMeta(){
+  var t = today();
+  var todays = S.sessions.filter(function(s){ return iso(new Date(s.ts)) === t; });
+  var mins = todays.reduce(function(a,s){ return a + (s.mins||0); }, 0);
+  var el = $("focusToday"); if(el) el.innerHTML = mins + "<small>m</small>";
+  var es = $("focusStreak"); if(es) es.textContent = todays.length;
+  var tot = $("sessTotal"); if(tot) tot.textContent = S.sessions.length + " session" + (S.sessions.length===1?"":"s");
+
+  var sel = $("focusTask");
+  if(sel){
+    var cur = sel.value;
+    var opts = '<option value="">— not linked —</option>';
+    tasksFor(t).filter(function(x){ return !x.done; }).forEach(function(x){
+      opts += '<option value="' + x.id + '">' + esc(x.title) + '</option>';
+    });
+    sel.innerHTML = opts;
+    if(cur) sel.value = cur;
+  }
+  var sl = $("sessList");
+  if(sl){
+    sl.innerHTML = S.sessions.length ? S.sessions.slice(0,12).map(function(s){
+      return '<div class="item"><div class="grow"><div class="title">' + esc(s.taskTitle) + '</div>' +
+        '<div class="meta"><span class="chip ok">' + s.mins + ' min</span><span>' +
+        new Date(s.ts).toLocaleString(undefined,{day:"numeric",month:"short",hour:"2-digit",minute:"2-digit"}) + '</span></div></div></div>';
+    }).join("") : '<div class="empty"><b>No sessions yet</b>Start a 25-minute block and this fills itself.</div>';
+  }
+  var dt = $("distract"); if(dt && !dt.value && S.settings.distract) dt.value = S.settings.distract;
+}
+
+/* =========================================================
+   FILES & EMAIL
+   ========================================================= */
+function slug(s){
+  return String(s||"").normalize("NFD").replace(/[\u0300-\u036f]/g,"")
+    .toLowerCase().replace(/['’]/g,"").replace(/[^a-z0-9]+/g,"-")
+    .replace(/^-+|-+$/g,"").replace(/-{2,}/g,"-");
+}
+function filenameParts(){
+  var course = ($("fnCourse")||{}).value || "";
+  var type = ($("fnType")||{}).value || "notes";
+  var title = ($("fnTitle")||{}).value || "";
+  var date = ($("fnDate")||{}).value || today();
+  var ver = ($("fnVer")||{}).value || "1";
+  var name = ($("fnName")||{}).value || "";
+  return {
+    course: slug(course).toUpperCase().replace(/-/g,"") || "COURSE",
+    type: slug(type) || "notes",
+    title: slug(title) || "untitled",
+    date: date,
+    ver: pad(Math.max(1, Math.min(99, parseInt(ver,10) || 1))),
+    name: slug(name).toUpperCase()
+  };
+}
+function buildFilename(){
+  var p = filenameParts();
+  var pattern = ($("fnPattern")||{}).value || "{course}_{type}_{date}_{title}_v{ver}";
+  var out = pattern
+    .replace(/\{course\}/g, p.course)
+    .replace(/\{type\}/g, p.type)
+    .replace(/\{date\}/g, p.date)
+    .replace(/\{title\}/g, p.title)
+    .replace(/\{ver\}/g, p.ver)
+    .replace(/\{name\}/g, p.name || "me")
+    .replace(/_{2,}/g,"_").replace(/\/{2,}/g,"/");
+  out = out.replace(/(^|[_-])[_-]+/g,"$1").replace(/[_-]+(?=\.|$)/g,"");
+  return out;
+}
+function paintFilename(){
+  var el = $("fnPreview");
+  if(el) el.textContent = buildFilename() + ".pdf";
+}
+function renderFiles(){
+  var p = filenameParts();
+  var pat = $("fnPattern").value || "";
+  if(pat.indexOf("{name}") >= 0) { /* initials optional */ }
+  paintFilename();
+  var fl = $("fnList");
+  $("fnCount").textContent = S.filenames.length;
+  fl.innerHTML = S.filenames.length ? S.filenames.slice(0,10).map(function(f){
+    return '<div class="item"><div class="grow"><div class="title mono" style="font-size:.84rem">' + esc(f.name) + '</div>' +
+      '<div class="meta"><span>' + new Date(f.created).toLocaleDateString() + '</span></div></div>' +
+      '<button class="btn sm ghost" data-act="copyFnItem" data-id="' + f.id + '">Copy</button>' +
+      '<button class="icon-btn" data-act="delFn" data-id="' + f.id + '" aria-label="Remove" style="width:32px;height:32px">' +
+      '<svg viewBox="0 0 24 24"><path d="M18 6L6 18M6 6l12 12"/></svg></button></div>';
+  }).join("") : '<div class="empty" style="padding:18px 10px"><b>No files logged</b>Generate a name above and save it to build the habit.</div>';
+
+  var gl = $("gmList");
+  gl.innerHTML = S.filters.length ? S.filters.map(function(f){
+    return '<div class="item"><div class="grow"><div class="title">' + esc(f.label || f.query) + '</div>' +
+      '<div class="meta mono" style="font-size:.74rem">' + esc(f.query) + '</div></div>' +
+      '<button class="btn sm ghost" data-act="copyGmItem" data-id="' + f.id + '">Copy</button>' +
+      '<button class="icon-btn" data-act="delGm" data-id="' + f.id + '" aria-label="Remove" style="width:32px;height:32px">' +
+      '<svg viewBox="0 0 24 24"><path d="M18 6L6 18M6 6l12 12"/></svg></button></div>';
+  }).join("") : "";
+  paintGmail();
+}
+function gmailQuery(){
+  var from = ($("gmFrom")||{}).value || "";
+  var subj = ($("gmSubject")||{}).value || "";
+  var has = ($("gmHas")||{}).value || "";
+  var mode = ($("gmMode")||{}).value || "and";
+  var parts = [];
+  if(from.trim()) parts.push("from:(" + from.trim().replace(/[()]/g,"") + ")");
+  if(subj.trim()) parts.push("subject:(" + subj.trim().replace(/[()]/g,"") + ")");
+  if(has.trim()) parts.push(mode === "or" ? "(" + has.trim() + ")" : has.trim());
+  return parts.join(mode === "or" ? " OR " : " ");
+}
+function gmailXml(){
+  var from = (($("gmFrom")||{}).value || "").trim();
+  var subj = (($("gmSubject")||{}).value || "").trim();
+  var has = (($("gmHas")||{}).value || "").trim();
+  var label = (($("gmLabel")||{}).value || "").trim();
+  var q = gmailQuery();
+  var x = '<?xml version="1.0" encoding="UTF-8"?>\n' +
+    '<feed xmlns="http://www.w3.org/2005/Atom" xmlns:apps="http://schemas.google.com/apps/2006">\n' +
+    '  <title>Mail Filters</title>\n' +
+    '  <id>tag:mail.google.com,2008:filters</id>\n' +
+    '  <updated>' + new Date().toISOString() + '</updated>\n' +
+    '  <author><name>Cadence</name><email>cadence@localhost</email></author>\n' +
+    '  <entry>\n' +
+    '    <category term="filter"></category>\n' +
+    '    <title>Cadence filter: ' + escXml(label || q) + '</title>\n' +
+    '    <id>tag:mail.google.com,2008:filter:' + Date.now() + '</id>\n' +
+    '    <updated>' + new Date().toISOString() + '</updated>\n';
+  if(from) x += '    <apps:property name="from" value="' + escXml(from) + '"/>\n';
+  if(subj) x += '    <apps:property name="subject" value="' + escXml(subj) + '"/>\n';
+  if(has) x += '    <apps:property name="hasTheWord" value="' + escXml(has) + '"/>\n';
+  if(label) x += '    <apps:property name="label" value="' + escXml(label) + '"/>\n';
+  x += '    <apps:property name="shouldArchive" value="false"/>\n' +
+    '  </entry>\n</feed>\n';
+  return x;
+}
+function escXml(s){ return String(s).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;"); }
+function paintGmail(){
+  var q = gmailQuery();
+  var qe = $("gmQuery"); if(qe) qe.textContent = q || "—";
+  var xe = $("gmXml"); if(xe) xe.textContent = (($("gmFrom")||{}).value || ($("gmSubject")||{}).value || ($("gmHas")||{}).value) ? gmailXml() : "—";
+}
+
+/* =========================================================
+   WEEKLY REVIEW
+   ========================================================= */
+function weekStats(){
+  var t = today();
+  var mon = mondayOf(t);
+  var sun = addDays(mon, 6);
+  var start = parseISO(mon).getTime(), end = parseISO(sun).getTime() + 86399000;
+  var doneTasks = S.tasks.filter(function(x){
+    return x.done && x.date >= mon && x.date <= sun;
+  }).length;
+  var planned = S.tasks.filter(function(x){ return x.date >= mon && x.date <= sun; }).length;
+  var mins = S.sessions.filter(function(s){ return s.ts >= start && s.ts <= end; })
+    .reduce(function(a,s){ return a + (s.mins||0); }, 0);
+  var notes = S.notes.filter(function(n){ return n.created >= start && n.created <= end; }).length;
+  var reviews = S.reminders.filter(function(r){ return r.kind === "review" && r.done && r.date >= mon && r.date <= sun; }).length;
+  var slated = S.reminders.filter(function(r){ return r.kind === "review" && r.date >= mon && r.date <= sun; }).length;
+  return {mon:mon, sun:sun, doneTasks:doneTasks, planned:planned, mins:mins, notes:notes, reviews:reviews, slated:slated};
+}
+function renderReview(){
+  var w = weekStats();
+  $("rvWeekPill").textContent = isoWeek(new Date()) + " · " + parseISO(w.mon).toLocaleDateString(undefined,{day:"numeric",month:"short"}) +
+    " – " + parseISO(w.sun).toLocaleDateString(undefined,{day:"numeric",month:"short"});
+  $("rvStats").innerHTML = [
+    statCard(w.doneTasks + "<small>/" + w.planned + "</small>", "Tasks completed"),
+    statCard(w.mins + "<small>m</small>", "Deep work"),
+    statCard(w.notes, "Lectures captured"),
+    statCard(w.reviews + "<small>/" + w.slated + "</small>", "Reviews kept")
+  ].join("");
+
+  var cur = S.reviews.filter(function(r){ return r.week === isoWeek(new Date()); })[0];
+  var wn = $("rvSavedNote");
+  if(cur){
+    wn.textContent = "Saved " + new Date(cur.created).toLocaleString();
+    if(!$("rvWins").value) $("rvWins").value = cur.wins || "";
+    if(!$("rvChallenges").value) $("rvChallenges").value = cur.challenges || "";
+    if(!$("rvNext").value) $("rvNext").value = cur.next || "";
+  } else {
+    wn.textContent = "Not saved yet";
+  }
+
+  var slip = openTasks().filter(function(x){ return x.date <= w.sun; }).slice(0,8);
+  $("rvCarry").innerHTML = slip.length ? slip.map(function(x){
+    return '<div class="item"><div class="grow"><div class="title">' + esc(x.title) + '</div>' +
+      '<div class="meta">' + prioChip(x.prio) + '<span>' + niceDate(x.date) + '</span></div></div>' +
+      '<button class="btn sm" data-act="rvMove" data-id="' + x.id + '">Push to next week</button></div>';
+  }).join("") : '<div class="empty" style="padding:16px 10px">Nothing unfinished — genuinely clear.</div>';
+
+  var hist = S.reviews.slice().sort(function(a,b){ return b.created - a.created; });
+  $("rvCount").textContent = hist.length;
+  $("rvHistory").innerHTML = hist.length ? hist.map(function(r){
+    return '<div class="item" style="align-items:flex-start"><div class="grow">' +
+      '<div class="meta" style="margin:0 0 5px"><span class="chip info">' + esc(r.week) + '</span>' +
+      '<span>' + new Date(r.created).toLocaleDateString() + '</span></div>' +
+      '<div class="small"><b>Wins:</b> ' + esc(r.wins || "—") + '</div>' +
+      '<div class="small"><b>Friction:</b> ' + esc(r.challenges || "—") + '</div>' +
+      '<div class="small"><b>Next:</b> ' + esc(r.next || "—") + '</div>' +
+      '</div><button class="icon-btn" data-act="delReview" data-id="' + r.id + '" aria-label="Delete review" style="width:32px;height:32px">' +
+      '<svg viewBox="0 0 24 24"><path d="M18 6L6 18M6 6l12 12"/></svg></button></div>';
+  }).join("") : '<div class="empty" style="padding:18px 10px"><b>No past reviews</b>Save this week and it appears here.</div>';
+}
+
+/* =========================================================
+   GRADES & GPA
+   ========================================================= */
+function pctToPoint(pct, scale){
+  if(scale === "uk"){
+    if(pct >= 70) return 4.0;
+    if(pct >= 65) return 3.3;
+    if(pct >= 60) return 3.0;
+    if(pct >= 50) return 2.3;
+    if(pct >= 40) return 2.0;
+    return 0;
+  }
+  if(pct >= 93) return 4.0;
+  if(pct >= 90) return 3.7;
+  if(pct >= 87) return 3.3;
+  if(pct >= 83) return 3.0;
+  if(pct >= 80) return 2.7;
+  if(pct >= 77) return 2.3;
+  if(pct >= 73) return 2.0;
+  if(pct >= 70) return 1.7;
+  if(pct >= 60) return 1.0;
+  return 0;
+}
+function letterOf(pct, scale){
+  if(scale === "uk"){
+    if(pct >= 70) return "First";
+    if(pct >= 60) return "2:1";
+    if(pct >= 50) return "2:2";
+    if(pct >= 40) return "Third";
+    return "Fail";
+  }
+  var table = [[93,"A"],[90,"A−"],[87,"B+"],[83,"B"],[80,"B−"],[77,"C+"],[73,"C"],[70,"C−"],[60,"D"],[0,"F"]];
+  for(var i=0;i<table.length;i++) if(pct >= table[i][0]) return table[i][1];
+  return "F";
+}
+function coursePct(c){
+  var items = c.items || [];
+  var wsum = 0, ssum = 0;
+  items.forEach(function(it){
+    var w = Number(it.weight) || 0;
+    if(it.score !== "" && it.score !== null && it.score !== undefined && !isNaN(Number(it.score)) && w > 0){
+      ssum += Number(it.score) * w;
+      wsum += w;
+    }
+  });
+  return wsum ? ssum / wsum : null;
+}
+function computeGPA(courses){
+  var tw = 0, tp = 0;
+  courses.forEach(function(c){
+    var pct = coursePct(c);
+    var cr = Number(c.credits) || 0;
+    if(pct !== null && cr > 0){
+      tw += cr;
+      tp += pctToPoint(pct, c.scale) * cr;
+    }
+  });
+  return tw ? tp/tw : null;
+}
+function paintCourseSummary(c){
+  var pct = coursePct(c);
+  var chip = $("chip-" + c.id);
+  if(chip){
+    chip.className = "chip " + (pct === null ? "lo" : (pct >= 80 ? "ok" : pct >= 60 ? "med" : "hi"));
+    chip.textContent = pct === null ? "unscored" : Math.round(pct*10)/10 + "% · " + letterOf(pct, c.scale);
+  }
+  var bar = $("bar-" + c.id);
+  if(bar) bar.style.width = (pct === null ? 0 : Math.min(100, pct)) + "%";
+  var wrap = $("course-" + c.id);
+  if(wrap){
+    var lbl = wrap.querySelector("[data-usedw]");
+    if(lbl){
+      var used = (c.items||[]).reduce(function(a,i){ return a + (Number(i.weight)||0); }, 0);
+      lbl.textContent = "Weights total " + used + "%" + (used > 100 ? " — over 100" : "");
+      lbl.style.color = used > 100 ? "var(--danger)" : "";
+    }
+  }
+  var gpa = computeGPA(S.courses);
+  var graded = S.courses.filter(function(x){ return coursePct(x) !== null; });
+  var credits = S.courses.reduce(function(a,x){ return a + (Number(x.credits)||0); }, 0);
+  var best = graded.slice().sort(function(a,b){ return coursePct(b)-coursePct(a); })[0];
+  var gs = $("gpaStats");
+  if(gs){
+    gs.innerHTML = [
+      statCard(gpa === null ? "—" : gpa.toFixed(2), "Cumulative GPA (4.0)"),
+      statCard(S.courses.length, "Courses"),
+      statCard(credits, "Credit hours"),
+      statCard(best ? Math.round(coursePct(best)) + "<small>%</small>" : "—", best ? "Best: " + shortName(best.name) : "No grades yet")
+    ].join("");
+  }
+}
+function renderGrades(){
+  var gpa = computeGPA(S.courses);
+  var graded = S.courses.filter(function(c){ return coursePct(c) !== null; });
+  var credits = S.courses.reduce(function(a,c){ return a + (Number(c.credits)||0); }, 0);
+  var best = graded.slice().sort(function(a,b){ return coursePct(b)-coursePct(a); })[0];
+  $("gpaStats").innerHTML = [
+    statCard(gpa === null ? "—" : gpa.toFixed(2), "Cumulative GPA (4.0)"),
+    statCard(S.courses.length, "Courses"),
+    statCard(credits, "Credit hours"),
+    statCard(best ? Math.round(coursePct(best)) + "<small>%</small>" : "—", best ? "Best: " + shortName(best.name) : "No grades yet")
+  ].join("");
+
+  var wrap = $("courseListG");
+  wrap.innerHTML = S.courses.length ? S.courses.map(function(c){
+    var pct = coursePct(c);
+    var items = c.items || [];
+    var usedW = items.reduce(function(a,i){ return a + (Number(i.weight)||0); }, 0);
+    var rows = items.length ? items.map(function(i){
+      return '<tr><td><input type="text" data-act="gName" data-c="' + c.id + '" data-i="' + i.id + '" value="' + esc(i.name) + '" aria-label="Assessment name"></td>' +
+        '<td class="num"><input type="number" min="0" max="100" step="0.1" data-act="gScore" data-c="' + c.id + '" data-i="' + i.id + '" value="' + (i.score === null || i.score === undefined ? "" : esc(i.score)) + '" placeholder="—" aria-label="Score"></td>' +
+        '<td class="num"><input type="number" min="0" max="100" step="1" data-act="gWeight" data-c="' + c.id + '" data-i="' + i.id + '" value="' + esc(i.weight == null ? "" : i.weight) + '" aria-label="Weight"></td>' +
+        '<td class="num"><button class="icon-btn" data-act="delItem" data-c="' + c.id + '" data-i="' + i.id + '" aria-label="Delete assessment" style="width:30px;height:30px"><svg viewBox="0 0 24 24"><path d="M18 6L6 18M6 6l12 12"/></svg></button></td></tr>';
+    }).join("") : '<tr><td colspan="4" class="muted small" style="padding:14px 8px">No assessments yet — add one below.</td></tr>';
+
+    return '<div class="card" id="course-' + c.id + '"><div class="card-h">' +
+      '<div><h2 style="font-size:1rem">' + esc(c.name) + '</h2>' +
+      '<div class="tiny muted">' + (Number(c.credits)||0) + ' credits · ' + (c.scale === "uk" ? "UK scale" : "4.0 scale") + '</div></div>' +
+      '<div class="hact">' +
+      '<span class="chip ' + (pct === null ? "lo" : (pct >= 80 ? "ok" : pct >= 60 ? "med" : "hi")) + '" id="chip-' + c.id + '">' +
+      (pct === null ? "unscored" : Math.round(pct*10)/10 + "% · " + letterOf(pct, c.scale)) + '</span>' +
+      '<button class="icon-btn" data-act="delCourse" data-id="' + c.id + '" aria-label="Delete course" style="width:32px;height:32px"><svg viewBox="0 0 24 24"><path d="M18 6L6 18M6 6l12 12"/></svg></button>' +
+      '</div></div>' +
+      '<div class="bar" style="margin-bottom:12px"><i id="bar-' + c.id + '" style="width:' + (pct===null?0:Math.min(100,pct)) + '%"></i></div>' +
+      '<div class="tw"><table><thead><tr><th>Assessment</th><th class="num">Score %</th><th class="num">Weight %</th><th></th></tr></thead>' +
+      '<tbody>' + rows + '</tbody></table></div>' +
+      '<div class="row" style="margin-top:10px">' +
+      '<span class="small ' + (usedW > 100 ? "" : "muted") + '" data-usedw style="' + (usedW > 100 ? "color:var(--danger)" : "") + '">Weights total ' + usedW + '%' + (usedW > 100 ? " — over 100" : "") + '</span>' +
+      '<button class="btn sm" data-act="addItem" data-id="' + c.id + '" style="margin-left:auto">Add assessment</button>' +
+      '</div></div>';
+  }).join("") : '<div class="empty"><b>No courses yet</b>Add a course above, then log its assessments and weights.</div>';
+}
+
+/* =========================================================
+   FLASHCARDS (SM-2 simplified)
+   ========================================================= */
+var cardQueue = [], cardIdx = 0, cardShown = false;
+
+function buildQueue(){
+  var now = Date.now();
+  var due = S.cards.filter(function(c){ return (c.due||0) <= now; });
+  due.sort(function(a,b){ return (a.due||0) - (b.due||0); });
+  cardQueue = due.map(function(c){ return c.id; });
+  cardIdx = 0;
+  cardShown = false;
+}
+function renderCards(){
+  var now = Date.now();
+  var due = dueCards().length;
+  var learned = S.cards.filter(function(c){ return (c.reps||0) >= 3; }).length;
+  var decks = {};
+  S.cards.forEach(function(c){ decks[c.deck || "General"] = (decks[c.deck || "General"]||0)+1; });
+  $("cardStats").innerHTML = [
+    statCard(S.cards.length, "Total cards"),
+    statCard(due, "Due now"),
+    statCard(learned, "Well learned"),
+    statCard(Object.keys(decks).length, "Decks")
+  ].join("");
+
+  var stage = $("cardStage");
+  if(!S.cards.length){
+    $("deckPill").textContent = "empty";
+    stage.innerHTML = '<div class="empty"><b>No cards yet</b>Add one below, or generate cards from a lecture note.</div>';
+  } else if(!cardQueue.length){
+    buildQueue();
+  }
+
+  if(S.cards.length && !cardQueue.length){
+    $("deckPill").textContent = "nothing due";
+    var next = S.cards.slice().sort(function(a,b){ return (a.due||0)-(b.due||0); })[0];
+    stage.innerHTML = '<div class="empty"><b>Queue clear</b>Next card is due ' +
+      (next ? new Date(next.due).toLocaleString(undefined,{day:"numeric",month:"short",hour:"2-digit",minute:"2-digit"}) : "later") +
+      '.<div style="margin-top:10px"><button class="btn sm" id="btnStudyAny">Study anyway</button></div></div>';
+  } else if(S.cards.length){
+    var c = S.cards.filter(function(x){ return x.id === cardQueue[cardIdx]; })[0];
+    if(!c){ cardIdx = 0; c = S.cards.filter(function(x){ return x.id === cardQueue[0]; })[0]; }
+    if(!c){ return; }
+    $("deckPill").textContent = (c.deck || "General") + " · " + (cardIdx+1) + "/" + cardQueue.length;
+    stage.innerHTML = '<div class="fc"><div class="q">' + esc(c.front) + '</div>' +
+      (cardShown ? '<div class="a">' + esc(c.back) + '</div>' : '') + '</div>' +
+      (cardShown ?
+        '<div class="row" style="margin-top:12px">' +
+        '<button class="btn" data-rate="0" style="flex:1">Again</button>' +
+        '<button class="btn" data-rate="1" style="flex:1">Hard</button>' +
+        '<button class="btn primary" data-rate="2" style="flex:1">Good</button>' +
+        '<button class="btn" data-rate="3" style="flex:1">Easy</button></div>' +
+        '<div class="tiny muted center" style="margin-top:8px">interval ' + (c.interval||0) + 'd · ease ' + (c.ef||2.5).toFixed(2) + '</div>'
+        :
+        '<div class="row" style="margin-top:12px"><button class="btn primary wide" id="btnReveal">Show answer</button></div>');
+  }
+
+  // filter/deck select
+  var sel = $("cdFilter");
+  if(sel){
+    var cur = sel.value;
+    sel.innerHTML = '<option value="">All decks</option>' + Object.keys(decks).map(function(d){
+      return '<option value="' + esc(d) + '">' + esc(d) + ' (' + decks[d] + ')</option>';
+    }).join("");
+    sel.value = cur;
+  }
+  var cl = $("cardList");
+  var fv = sel ? sel.value : "";
+  var cards = S.cards.filter(function(c){ return !fv || (c.deck||"General") === fv; })
+    .sort(function(a,b){ return (a.due||0)-(b.due||0); });
+  cl.innerHTML = cards.length ? cards.map(function(c){
+    return '<div class="item"><div class="grow"><div class="title">' + esc(c.front) + '</div>' +
+      '<div class="meta"><span class="chip out">' + esc(c.deck||"General") + '</span>' +
+      '<span>' + ((c.due||0) <= Date.now() ? '<span style="color:var(--accent)">due now</span>' : new Date(c.due).toLocaleDateString()) + '</span>' +
+      '<span>reps ' + (c.reps||0) + '</span></div></div>' +
+      '<button class="icon-btn" data-act="delCard" data-id="' + c.id + '" aria-label="Delete card" style="width:32px;height:32px">' +
+      '<svg viewBox="0 0 24 24"><path d="M18 6L6 18M6 6l12 12"/></svg></button></div>';
+  }).join("") : '<div class="empty" style="padding:18px 10px">No cards in this deck.</div>';
+}
+function rateCard(r){
+  var id = cardQueue[cardIdx];
+  var c = S.cards.filter(function(x){ return x.id === id; })[0];
+  if(!c) return;
+  c.ef = c.ef || 2.5;
+  c.interval = c.interval || 0;
+  c.reps = c.reps || 0;
+  var day = 86400000;
+  if(r === 0){
+    c.reps = 0; c.interval = 0; c.lapses = (c.lapses||0)+1; c.ef = Math.max(1.3, c.ef - 0.2);
+    c.due = Date.now() + 10*60*1000;
+  } else if(r === 1){
+    c.interval = Math.max(1, Math.round((c.interval || 1) * 1.2));
+    c.ef = Math.max(1.3, c.ef - 0.15); c.reps = (c.reps||0)+1;
+    c.due = Date.now() + c.interval*day;
+  } else if(r === 2){
+    c.interval = c.reps === 0 ? 1 : (c.reps === 1 ? 3 : Math.round(c.interval * c.ef));
+    c.reps = (c.reps||0)+1;
+    c.due = Date.now() + c.interval*day;
+  } else {
+    c.interval = c.reps === 0 ? 3 : (c.reps === 1 ? 5 : Math.round(c.interval * c.ef * 1.3));
+    c.ef = Math.min(2.9, c.ef + 0.15); c.reps = (c.reps||0)+1;
+    c.due = Date.now() + c.interval*day;
+  }
+  save();
+  cardIdx++;
+  cardShown = false;
+  if(cardIdx >= cardQueue.length){ cardQueue = []; cardIdx = 0; }
+  renderCards();
+}
+
+/* =========================================================
+   HABITS
+   ========================================================= */
+function renderHabits(){
+  var t = today();
+  $("hbToday").textContent = niceDate(t);
+  var wrap = $("habitList");
+  if(!S.habits.length){
+    wrap.innerHTML = '<div class="empty"><b>No habits yet</b>Start with one you can do on your worst day — "read 10 pages", not "study 4 hours".</div>';
+    return;
+  }
+  wrap.innerHTML = S.habits.map(function(h){
+    var days = h.days || {};
+    var cells = "";
+    for(var i=13;i>=0;i--){
+      var d = addDays(t, -i);
+      cells += '<button class="hcell ' + (days[d]?"on":"") + ' ' + (d===t?"today":"") +
+        '" data-act="tgHabit" data-id="' + h.id + '" data-date="' + d +
+        '" aria-label="' + h.name + ' on ' + d + '" aria-pressed="' + (days[d]?"true":"false") + '">' +
+        (parseISO(d).getDate()) + '</button>';
+    }
+    var streak = 0;
+    for(var k=0;k<400;k++){
+      var dd = addDays(t, -k);
+      if(days[dd]) streak++;
+      else if(k > 0) break;
+      else if(k === 0) continue;
+    }
+    var total = Object.keys(days).filter(function(x){ return days[x]; }).length;
+    return '<div class="item" style="flex-wrap:wrap"><div class="grow" style="min-width:110px">' +
+      '<div class="title">' + esc(h.name) + '</div>' +
+      '<div class="meta"><span class="chip ' + (streak>0?"ok":"lo") + '">' + streak + ' day streak</span>' +
+      '<span>' + total + ' total</span></div></div>' +
+      '<div class="hgrid">' + cells + '</div>' +
+      '<button class="icon-btn" data-act="delHabit" data-id="' + h.id + '" aria-label="Delete habit" style="width:32px;height:32px">' +
+      '<svg viewBox="0 0 24 24"><path d="M18 6L6 18M6 6l12 12"/></svg></button></div>';
+  }).join("");
+}
+
+/* =========================================================
+   BACKUP
+   ========================================================= */
+function renderBackup(){
+  var size = 0;
+  try{ size = new Blob([JSON.stringify(S)]).size; }catch(e){ size = JSON.stringify(S).length; }
+  var counts = [
+    ["Tasks", S.tasks.length], ["Reminders", S.reminders.length], ["Notes", S.notes.length],
+    ["Assignments", S.assignments.length], ["Focus sessions", S.sessions.length],
+    ["Courses", S.courses.length], ["Cards", S.cards.length], ["Habits", S.habits.length],
+    ["Reviews", S.reviews.length]
+  ];
+  $("storageInfo").innerHTML = '<div class="grid" style="gap:8px">' +
+    counts.map(function(c){ return '<div class="track-row"><span>' + c[0] + '</span><div></div><span class="nowrap" style="color:var(--ink);font-weight:600">' + c[1] + '</span></div>'; }).join("") +
+    '</div><div class="note-line">' + (size/1024).toFixed(1) + ' KB stored in this browser · key <span class="mono">cadence.v1</span>' +
+    (S.settings.lastBackup ? ' · last export ' + new Date(S.settings.lastBackup).toLocaleString() : ' · never exported') + '</div>';
+  var lb = $("lastBackup");
+  if(lb) lb.textContent = S.settings.lastBackup ? "exported " + new Date(S.settings.lastBackup).toLocaleDateString() : "never exported";
+}
+
+/* =========================================================
+   ALERTS
+   ========================================================= */
+var alerted = {};
+function checkAlerts(){
+  var t = today();
+  openReminders().forEach(function(r){
+    var d = dayDiff(t, r.date);
+    if(d <= 1 && !alerted[r.id]){
+      alerted[r.id] = 1;
+      var msg = r.title + " — " + (d < 0 ? Math.abs(d) + " days overdue" : d === 0 ? "is today" : "is tomorrow");
+      toast(msg);
+      if(window.Notification && Notification.permission === "granted"){
+        try{ new Notification("Cadence reminder", {body: msg, tag: r.id}); }catch(e){}
+      }
+    }
+  });
+}
+
+/* =========================================================
+   RENDER ALL
+   ========================================================= */
+function renderAll(){
+  if(currentView === "dash") renderDash();
+  if(currentView === "plan") renderPlan();
+  if(currentView === "reminders") renderReminders();
+  if(currentView === "notes") renderNotes();
+  if(currentView === "assignments") renderAssignments();
+  if(currentView === "focus") renderFocusMeta();
+  if(currentView === "files") renderFiles();
+  if(currentView === "review") renderReview();
+  if(currentView === "grades") renderGrades();
+  if(currentView === "cards") renderCards();
+  if(currentView === "habits") renderHabits();
+  if(currentView === "backup") renderBackup();
+  renderCounters();
+  var tbd = $("tbDate");
+  if(tbd) tbd.textContent = new Date().toLocaleDateString(undefined,{weekday:"short", day:"numeric", month:"short"});
+}
+function renderCounters(){
+  var t = today();
+  var p = $("cntPlan");
+  if(p){ var n = tasksFor(t).filter(function(x){ return !x.done; }).length; p.textContent = n; p.classList.toggle("hide", !n); }
+  var r = $("cntRem");
+  if(r){ var rn = openReminders().filter(function(x){ return dayDiff(t,x.date) <= 3; }).length; r.textContent = rn; r.classList.toggle("hide", !rn); }
+  var a = $("cntAss");
+  if(a){ var an = S.assignments.filter(function(x){ return x.status === "todo" || x.status === "doing"; }).length; a.textContent = an; a.classList.toggle("hide", !an); }
+  var c = $("cntCards");
+  if(c){ var cn = dueCards().length; c.textContent = cn; c.classList.toggle("hide", !cn); }
+}
+
+/* =========================================================
+   MODAL (quick add)
+   ========================================================= */
+function openQuickAdd(){
+  var t = today();
+  $("modalTitle").textContent = "Quick add task";
+  $("modalBody").innerHTML =
+    '<div class="field" style="margin-bottom:10px"><label class="label" for="qaTitle">Task</label>' +
+    '<input id="qaTitle" type="text" placeholder="What needs to happen?" maxlength="140"></div>' +
+    '<div class="form-grid">' +
+    '<div class="field"><label class="label" for="qaPrio">Priority</label>' +
+    '<select id="qaPrio"><option value="1">High</option><option value="2" selected>Medium</option><option value="3">Low</option></select></div>' +
+    '<div class="field"><label class="label" for="qaDate">Date</label><input id="qaDate" type="date" value="' + t + '"></div>' +
+    '<div class="field"><label class="label" for="qaCourse">Course</label><input id="qaCourse" type="text" placeholder="CS201" maxlength="24" list="courseList"></div>' +
+    '<div class="field"><label class="label" for="qaEst">Minutes</label><input id="qaEst" type="number" min="5" max="480" step="5" placeholder="30"></div>' +
+    '</div>' +
+    '<div class="acts"><button class="btn ghost" data-act="closeModal">Cancel</button>' +
+    '<button class="btn primary" data-act="saveQuick">Add task</button></div>';
+  $("modalBg").classList.add("on");
+  setTimeout(function(){ var el = $("qaTitle"); if(el) el.focus(); }, 60);
+}
+function closeModal(){ $("modalBg").classList.remove("on"); }
+
+/* =========================================================
+   ACTIONS
+   ========================================================= */
+document.addEventListener("click", function(e){
+  // card interaction must be checked before the data-act guard below
+  var rate = e.target.closest("[data-rate]");
+  if(rate){ rateCard(Number(rate.getAttribute("data-rate"))); return; }
+  if(e.target.closest("#btnReveal")){ cardShown = true; renderCards(); return; }
+  if(e.target.closest("#btnStudyAny")){
+    cardQueue = S.cards.slice().sort(function(a,b){ return (a.due||0)-(b.due||0); }).map(function(c){ return c.id; });
+    cardIdx = 0; cardShown = false; renderCards(); return;
+  }
+
+  var nav = e.target.closest("[data-nav]");
+  if(nav){ showView(nav.getAttribute("data-nav")); return; }
+
+  var el = e.target.closest("[data-act]");
+  if(!el) return;
+  var act = el.getAttribute("data-act");
+  var id = el.getAttribute("data-id");
+  var t = today();
+
+  switch(act){
+    case "menu": toggleMenu(); break;
+    case "theme": toggleTheme(); break;
+    case "quickAdd": openQuickAdd(); break;
+    case "closeModal": closeModal(); break;
+
+    case "tgTask": {
+      var tk = S.tasks.filter(function(x){ return x.id === id; })[0];
+      if(tk){ tk.done = !tk.done; tk.doneAt = tk.done ? Date.now() : null; save(); renderAll(); if(tk.done) toast("Done. That counts."); }
+      break;
+    }
+    case "delTask": S.tasks = S.tasks.filter(function(x){ return x.id !== id; }); save(); renderAll(); break;
+    case "planPrev": planDate = addDays(planDate, -1); renderPlan(); break;
+    case "planNext": planDate = addDays(planDate, 1); renderPlan(); break;
+    case "planToday": planDate = today(); renderPlan(); break;
+    case "gotoDay": planDate = el.getAttribute("data-date"); renderPlan(); break;
+    case "carryOver": {
+      var moved = 0;
+      S.tasks.forEach(function(x){ if(!x.done && x.date === planDate){ x.date = addDays(planDate,1); moved++; } });
+      save(); renderPlan(); toast(moved ? moved + " task(s) moved to tomorrow" : "Nothing to carry over", moved ? "ok" : "");
+      break;
+    }
+    case "clearDone": S.tasks = S.tasks.filter(function(x){ return !(x.done && x.date === planDate); }); save(); renderPlan(); break;
+    case "pullOverdue": {
+      var n = 0;
+      S.tasks.forEach(function(x){ if(!x.done && x.date < t){ x.date = t; n++; } });
+      save(); renderAll(); toast(n + " task(s) pulled to today", "ok");
+      break;
+    }
+
+    case "tgRem": {
+      var rm = S.reminders.filter(function(x){ return x.id === id; })[0];
+      if(rm){ rm.done = !rm.done; save(); renderAll(); }
+      break;
+    }
+    case "delRem": S.reminders = S.reminders.filter(function(x){ return x.id !== id; }); save(); renderAll(); break;
+    case "notifyPerm": requestAlerts(); break;
+
+    case "asSortDue": renderAssignments(); break;
+    case "delAs": S.assignments = S.assignments.filter(function(x){ return x.id !== id; }); save(); renderAll(); break;
+
+    case "focusFull": $("fm").classList.add("on"); paintPomo(); break;
+    case "fmClose": $("fm").classList.remove("on"); break;
+    case "clearSessions": S.sessions = []; save(); renderFocusMeta(); renderCounters(); break;
+
+    case "loadNote": {
+      var nt = S.notes.filter(function(x){ return x.id === id; })[0];
+      if(nt){
+        $("noteTitle").value = nt.title || "";
+        $("noteCourse").value = nt.course || "";
+        $("noteBody").value = nt.body || "";
+        $("noteOutCard").classList.remove("hide");
+        $("noteSummary").innerHTML = nt.summary && nt.summary.length ?
+          '<h2 style="font-size:1rem;margin-bottom:8px">Summary</h2><ul style="padding-left:18px;margin:0 0 16px">' +
+          nt.summary.map(function(s){ return '<li style="margin-bottom:7px;font-size:.93rem">' + esc(s) + '</li>'; }).join("") + '</ul>' : "";
+        $("noteQuestions").innerHTML = nt.questions && nt.questions.length ?
+          '<h2 style="font-size:1rem;margin-bottom:8px">Study questions</h2><div class="list">' +
+          nt.questions.map(function(q){ return '<div class="item"><div class="grow"><div class="title">' + esc(q.q) + '</div><div class="meta">' + esc(q.a) + '</div></div></div>'; }).join("") + '</div>' : "";
+        window.scrollTo({top:0, behavior:"smooth"});
+        toast("Note loaded into the editor");
+      }
+      break;
+    }
+    case "delNote": S.notes = S.notes.filter(function(x){ return x.id !== id; }); save(); renderNotes(); renderCounters(); break;
+    case "copyNoteOut": {
+      var txt = $("noteSummary").innerText + "\n\n" + $("noteQuestions").innerText;
+      copyText(txt.trim() || "Nothing generated yet.");
+      break;
+    }
+    case "qsToCards": {
+      var qs = S._lastQs || [];
+      if(!qs.length){ toast("Generate questions first.", "bad"); break; }
+      qs.forEach(function(q){
+        S.cards.push({id:uid(), front:q.q, back:q.a, deck:($("noteCourse").value || "General"),
+          ef:2.5, interval:0, reps:0, lapses:0, due:Date.now(), created:Date.now()});
+      });
+      save(); renderCounters(); toast(qs.length + " cards added to deck " + ($("noteCourse").value || "General"), "ok");
+      break;
+    }
+
+    case "copyFnItem": {
+      var f0 = S.filenames.filter(function(x){ return x.id === id; })[0];
+      if(f0) copyText(f0.name);
+      break;
+    }
+    case "delFn": S.filenames = S.filenames.filter(function(x){ return x.id !== id; }); save(); renderFiles(); break;
+    case "copyGmItem": {
+      var g0 = S.filters.filter(function(x){ return x.id === id; })[0];
+      if(g0) copyText(g0.query);
+      break;
+    }
+    case "delGm": S.filters = S.filters.filter(function(x){ return x.id !== id; }); save(); renderFiles(); break;
+
+    case "rvMove": {
+      var mv = S.tasks.filter(function(x){ return x.id === id; })[0];
+      if(mv){ mv.date = addDays(weekStats().sun, 1); save(); renderReview(); toast("Moved to next week"); }
+      break;
+    }
+    case "rvPrefill": {
+      var slip = openTasks().filter(function(x){ return x.date <= weekStats().sun; });
+      var ta = $("rvNext");
+      var lines = slip.slice(0,6).map(function(x,i){ return (i+1) + ". " + x.title; });
+      ta.value = (ta.value ? ta.value + "\n" : "") + lines.join("\n");
+      toast(slip.length + " unfinished item(s) pulled in");
+      break;
+    }
+    case "delReview": S.reviews = S.reviews.filter(function(x){ return x.id !== id; }); save(); renderReview(); break;
+
+    case "delCourse": S.courses = S.courses.filter(function(x){ return x.id !== id; }); save(); renderGrades(); break;
+    case "addItem": {
+      var c0 = S.courses.filter(function(x){ return x.id === id; })[0];
+      if(c0){
+        c0.items = c0.items || [];
+        c0.items.push({id:uid(), name:"New assessment", score:"", weight:0});
+        save(); renderGrades();
+      }
+      break;
+    }
+    case "delItem": {
+      var cc = S.courses.filter(function(x){ return x.id === el.getAttribute("data-c"); })[0];
+      if(cc){ cc.items = (cc.items||[]).filter(function(x){ return x.id !== el.getAttribute("data-i"); }); save(); renderGrades(); }
+      break;
+    }
+    case "gpaWhatIf": whatIf(); break;
+
+    case "delCard": S.cards = S.cards.filter(function(x){ return x.id !== id; }); save(); buildQueue(); renderCards(); renderCounters(); break;
+    case "tgHabit": {
+      var hb = S.habits.filter(function(x){ return x.id === id; })[0];
+      var d = el.getAttribute("data-date");
+      if(hb){
+        hb.days = hb.days || {};
+        if(hb.days[d]) delete hb.days[d]; else hb.days[d] = true;
+        save(); renderHabits();
+      }
+      break;
+    }
+    case "delHabit": S.habits = S.habits.filter(function(x){ return x.id !== id; }); save(); renderHabits(); break;
+
+    case "saveQuick": {
+      var title = ($("qaTitle")||{}).value || "";
+      if(!title.trim()){ toast("Type a task first.", "bad"); break; }
+      S.tasks.push({
+        id:uid(), title:title.trim(), prio:Number(($("qaPrio")||{}).value)||2,
+        course:(($("qaCourse")||{}).value||"").trim(),
+        est:Number(($("qaEst")||{}).value)||0,
+        date:(($("qaDate")||{}).value)||today(), done:false, created:Date.now()
+      });
+      save(); closeModal(); renderAll(); toast("Task added", "ok");
+      break;
+    }
+  }
+});
+
+document.addEventListener("change", function(e){
+  var el = e.target.closest("[data-act]");
+  if(!el) return;
+  var act = el.getAttribute("data-act");
+
+  if(act === "asStatus"){
+    var a = S.assignments.filter(function(x){ return x.id === el.getAttribute("data-id"); })[0];
+    if(a){ a.status = el.value; if(a.status === "submitted" || a.status === "graded") a.doneAt = Date.now(); save(); renderAll(); }
+  }
+  if(act === "gScore" || act === "gWeight" || act === "gName"){
+    var c = S.courses.filter(function(x){ return x.id === el.getAttribute("data-c"); })[0];
+    if(c){
+      var it = (c.items||[]).filter(function(x){ return x.id === el.getAttribute("data-i"); })[0];
+      if(it){
+        if(act === "gScore") it.score = el.value === "" ? "" : el.value;
+        if(act === "gWeight") it.weight = el.value === "" ? 0 : Number(el.value);
+        if(act === "gName") it.name = el.value;
+        save();
+        if(act !== "gName") paintCourseSummary(c);
+      }
+    }
+  }
+  if(act === "cmFilter"){ /* reserved */ }
+});
+
+/* ---------- forms ---------- */
+document.addEventListener("submit", function(e){
+  var f = e.target.closest("[data-form]");
+  if(!f) return;
+  e.preventDefault();
+  var kind = f.getAttribute("data-form");
+  var d = {};
+  Array.prototype.forEach.call(f.elements, function(el){ if(el.name) d[el.name] = el.value; });
+
+  if(kind === "task"){
+    if(!d.title || !d.title.trim()) return;
+    S.tasks.push({
+      id:uid(), title:d.title.trim(), prio:Number(d.prio)||2,
+      course:(d.course||"").trim(), est:Number(d.est)||0,
+      date:planDate, done:false, created:Date.now()
+    });
+    save(); f.reset(); renderPlan(); renderCounters(); toast("Added to plan", "ok");
+  }
+  if(kind === "reminder"){
+    if(!d.title || !d.date) return;
+    S.reminders.push({
+      id:uid(), title:d.title.trim(), kind:d.kind||"deadline",
+      date:d.date, course:(d.course||"").trim(), done:false, created:Date.now(), source:"manual"
+    });
+    save(); f.reset(); renderReminders(); renderCounters(); toast("Reminder added", "ok");
+  }
+  if(kind === "sched"){
+    if(!d.topic || !d.start) return;
+    var ladder = String(d.plan || "1,3,7,14,30").split(",").map(Number).filter(function(n){ return n > 0; });
+    var count = 0;
+    ladder.forEach(function(days, i){
+      S.reminders.push({
+        id:uid(), title:d.topic.trim() + " — review " + (i+1) + "/" + ladder.length,
+        kind:"review", date:addDays(d.start, days), course:"", done:false,
+        created:Date.now(), source:"spaced", offset:days
+      });
+      count++;
+    });
+    save(); f.reset(); renderReminders(); renderCounters();
+    toast(count + " review sessions scheduled", "ok");
+  }
+  if(kind === "assignment"){
+    if(!d.title || !d.due) return;
+    S.assignments.push({
+      id:uid(), title:d.title.trim(), course:(d.course||"").trim(),
+      due:d.due, weight:Number(d.weight)||0, status:d.status||"todo", created:Date.now()
+    });
+    save(); f.reset(); renderAssignments(); renderCounters(); toast("Assignment added", "ok");
+  }
+  if(kind === "course"){
+    if(!d.name) return;
+    S.courses.push({
+      id:uid(), name:d.name.trim(), credits:Number(d.credits)||3,
+      scale:d.scale||"us4", items:[], created:Date.now()
+    });
+    save(); f.reset(); renderGrades(); toast("Course added", "ok");
+  }
+  if(kind === "card"){
+    if(!d.front || !d.back) return;
+    S.cards.push({
+      id:uid(), front:d.front.trim(), back:d.back.trim(),
+      deck:(d.deck||"").trim() || "General",
+      ef:2.5, interval:0, reps:0, lapses:0, due:Date.now(), created:Date.now()
+    });
+    save(); f.reset(); buildQueue(); renderCards(); renderCounters(); toast("Card added", "ok");
+  }
+  if(kind === "habit"){
+    if(!d.name) return;
+    S.habits.push({id:uid(), name:d.name.trim(), days:{}, created:Date.now()});
+    save(); f.reset(); renderHabits(); toast("Habit added", "ok");
+  }
+});
+
+/* ---------- theme ---------- */
+function applyTheme(){
+  document.documentElement.setAttribute("data-theme", S.settings.theme === "dark" ? "dark" : "light");
+  var ic = $("themeIcon");
+  if(ic){
+    ic.innerHTML = S.settings.theme === "dark"
+      ? '<path d="M21 12.8A9 9 0 1111.2 3a7 7 0 009.8 9.8z"/>'
+      : '<circle cx="12" cy="12" r="4.2"/><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/>';
+  }
+}
+function toggleTheme(){
+  S.settings.theme = S.settings.theme === "dark" ? "light" : "dark";
+  save(); applyTheme();
+}
+
+/* ---------- notifications ---------- */
+function requestAlerts(){
+  if(!("Notification" in window)){ toast("This browser has no notification support.", "bad"); return; }
+  if(Notification.permission === "granted"){ toast("Alerts already on", "ok"); renderReminders(); return; }
+  Notification.requestPermission().then(function(p){
+    S.settings.notif = p === "granted";
+    save();
+    toast(p === "granted" ? "System alerts on" : "Alerts declined — in-app reminders still work", p === "granted" ? "ok" : "");
+    renderReminders();
+  }).catch(function(){ toast("Could not request permission", "bad"); });
+}
+
+/* ---------- what-if ---------- */
+function whatIf(){
+  if(!S.courses.length){ toast("Add a course first.", "bad"); return; }
+  $("modalTitle").textContent = "What-if grade planner";
+  var opts = S.courses.map(function(c){
+    return '<option value="' + c.id + '">' + esc(c.name) + '</option>';
+  }).join("");
+  $("modalBody").innerHTML =
+    '<p class="small muted">See what a given mark on the remaining weight would do to a course percentage.</p>' +
+    '<div class="field" style="margin-bottom:10px"><label class="label" for="wiCourse">Course</label><select id="wiCourse">' + opts + '</select></div>' +
+    '<div class="form-grid">' +
+    '<div class="field"><label class="label" for="wiScore">Target score on remaining work (%)</label><input id="wiScore" type="number" min="0" max="100" value="85"></div>' +
+    '<div class="field"><label class="label" for="wiRemain">Remaining weight (%)</label><input id="wiRemain" type="number" min="0" max="100" value="30"></div>' +
+    '</div><div id="wiOut" style="margin-top:14px"></div>' +
+    '<div class="acts"><button class="btn ghost" data-act="closeModal">Close</button></div>';
+  $("modalBg").classList.add("on");
+  var run = function(){
+    var c = S.courses.filter(function(x){ return x.id === $("wiCourse").value; })[0];
+    if(!c) return;
+    var cur = coursePct(c);
+    var target = Number($("wiScore").value) || 0;
+    var remain = Number($("wiRemain").value) || 0;
+    var items = c.items || [];
+    var usedW = items.reduce(function(a,i){ return a + (Number(i.weight)||0); }, 0);
+    var curW = items.reduce(function(a,i){
+      var w = Number(i.weight)||0;
+      var sc = (i.score === "" || i.score === null || i.score === undefined) ? null : Number(i.score);
+      return a + (sc !== null && !isNaN(sc) ? w : 0);
+    }, 0);
+    remain = Math.min(remain, Math.max(0, 100 - usedW) || remain);
+    var soFarPts = cur !== null ? cur * curW : 0;
+    var newPct = (soFarPts + target * remain) / (curW + remain || 1);
+    $("wiOut").innerHTML = '<div class="stats" style="margin:0"><div class="stat"><div class="n">' +
+      (cur === null ? "—" : Math.round(cur*10)/10 + "<small>%</small>") + '</div><div class="l">Current</div></div>' +
+      '<div class="stat"><div class="n">' + (Math.round(newPct*10)/10) + '<small>%</small></div><div class="l">Projected</div></div>' +
+      '<div class="stat"><div class="n">' + letterOf(newPct, c.scale) + '</div><div class="l">Letter</div></div>' +
+      '<div class="stat"><div class="n">' + pctToPoint(newPct, c.scale).toFixed(1) + '</div><div class="l">Grade point</div></div></div>';
+  };
+  $("wiCourse").addEventListener("change", run);
+  $("wiScore").addEventListener("input", run);
+  $("wiRemain").addEventListener("input", run);
+  run();
+}
+
+/* ---------- notes buttons ---------- */
+function bindNotes(){
+  var rb = $("recBtn");
+  if(rb) rb.addEventListener("click", function(){
+    if(mediaRec && mediaRec.state === "recording"){ stopRecording(); }
+    else { startRecording(); }
+  });
+  var bs = $("btnSummarize");
+  if(bs) bs.addEventListener("click", function(){
+    var txt = $("noteBody").value;
+    if(!sentencesOf(txt).length){ toast("Add at least a few full sentences first.", "bad"); return; }
+    var parts = summarize(txt, 6);
+    S._lastSum = parts;
+    renderNoteOutput(parts, S._lastQs || []);
+    toast("Summary generated locally", "ok");
+  });
+  var bq = $("btnQuestions");
+  if(bq) bq.addEventListener("click", function(){
+    var txt = $("noteBody").value;
+    if(!sentencesOf(txt).length){ toast("Add at least a few full sentences first.", "bad"); return; }
+    var qs = makeQuestions(txt);
+    S._lastQs = qs;
+    renderNoteOutput(S._lastSum || [], qs);
+    toast(qs.length + " questions generated", "ok");
+  });
+  var bsave = $("btnSaveNote");
+  if(bsave) bsave.addEventListener("click", function(){
+    var body = $("noteBody").value.trim();
+    var title = $("noteTitle").value.trim();
+    if(!body && !title){ toast("Nothing to save yet.", "bad"); return; }
+    S.notes.unshift({
+      id: uid(), title: title || "Untitled — " + niceDate(today()),
+      course: $("noteCourse").value.trim(), body: body,
+      summary: S._lastSum || [], questions: S._lastQs || [], created: Date.now()
+    });
+    save();
+    renderNotes(); renderCounters();
+    toast("Note saved", "ok");
+  });
+  var bcl = $("btnClearNote");
+  if(bcl) bcl.addEventListener("click", function(){
+    $("noteTitle").value = ""; $("noteCourse").value = ""; $("noteBody").value = "";
+    S._lastSum = null; S._lastQs = null;
+    $("noteOutCard").classList.add("hide");
+    $("noteSummary").innerHTML = ""; $("noteQuestions").innerHTML = "";
+    $("recTimer").textContent = "00:00";
+  });
+}
+
+/* ---------- filename live preview ---------- */
+function bindFiles(){
+  ["fnCourse","fnType","fnTitle","fnDate","fnVer","fnName"].forEach(function(id){
+    var el = $(id);
+    if(el) el.addEventListener("input", paintFilename);
+    if(el) el.addEventListener("change", paintFilename);
+  });
+  var p = $("fnPattern");
+  if(p) p.addEventListener("change", paintFilename);
+  var cp = $("btnCopyFn");
+  if(cp) cp.addEventListener("click", function(){ copyText(buildFilename() + ".pdf"); });
+  var sv = $("btnSaveFn");
+  if(sv) sv.addEventListener("click", function(){
+    var name = buildFilename() + ".pdf";
+    S.filenames.unshift({id:uid(), name:name, created:Date.now()});
+    if(S.filenames.length > 100) S.filenames.length = 100;
+    save(); renderFiles(); toast("Saved to file log", "ok");
+  });
+  ["gmFrom","gmSubject","gmHas","gmLabel","gmMode"].forEach(function(id){
+    var el = $(id);
+    if(el){ el.addEventListener("input", paintGmail); el.addEventListener("change", paintGmail); }
+  });
+  var cg = $("btnCopyGm");
+  if(cg) cg.addEventListener("click", function(){ copyText(gmailQuery() || "—"); });
+  var cx = $("btnCopyXml");
+  if(cx) cx.addEventListener("click", function(){ copyText(gmailXml()); });
+  var dx = $("btnDlXml");
+  if(dx) dx.addEventListener("click", function(){
+    var q = gmailQuery();
+    if(!q){ toast("Add at least one condition first.", "bad"); return; }
+    var label = $("gmLabel").value.trim() || q;
+    S.filters.unshift({id:uid(), label:label, query:q, created:Date.now()});
+    save();
+    download("cadence-gmail-filters.xml", gmailXml(), "application/xml");
+    renderFiles();
+    toast("XML downloaded — import it in Gmail settings", "ok");
+  });
+}
+
+/* ---------- review + grades buttons ---------- */
+function bindReviewGrades(){
+  var sb = $("btnSaveReview");
+  if(sb) sb.addEventListener("click", function(){
+    var week = isoWeek(new Date());
+    var w = weekStats();
+    var entry = {
+      id: uid(), week: week,
+      wins: $("rvWins").value.trim(),
+      challenges: $("rvChallenges").value.trim(),
+      next: $("rvNext").value.trim(),
+      stats: {done:w.doneTasks, planned:w.planned, mins:w.mins, notes:w.notes},
+      created: Date.now()
+    };
+    var existing = S.reviews.filter(function(r){ return r.week === week; })[0];
+    if(existing){
+      existing.wins = entry.wins; existing.challenges = entry.challenges;
+      existing.next = entry.next; existing.stats = entry.stats; existing.created = entry.created;
+    } else {
+      S.reviews.push(entry);
+    }
+    save(); renderReview(); toast("Weekly review saved", "ok");
+  });
+}
+
+/* ---------- backup ---------- */
+function bindBackup(){
+  var ex = $("btnExport");
+  if(ex) ex.addEventListener("click", function(){
+    S.settings.lastBackup = Date.now();
+    save();
+    download("cadence-backup-" + today() + ".json", JSON.stringify(S, null, 2));
+    renderBackup();
+    toast("Backup downloaded", "ok");
+  });
+  var cj = $("btnCopyJson");
+  if(cj) cj.addEventListener("click", function(){ copyText(JSON.stringify(S)); });
+
+  function readFile(cb){
+    var f = $("importFile").files[0];
+    if(!f){ toast("Choose a backup file first.", "bad"); return; }
+    var r = new FileReader();
+    r.onload = function(){
+      try{
+        var data = JSON.parse(r.result);
+        if(!data || typeof data !== "object") throw new Error("bad");
+        if(!Array.isArray(data.tasks) && !Array.isArray(data.cards) && data.v !== 1) throw new Error("shape");
+        cb(data);
+      }catch(e){
+        toast("That file is not a Cadence backup.", "bad");
+      }
+    };
+    r.readAsText(f);
+  }
+  var mg = $("btnImportMerge");
+  if(mg) mg.addEventListener("click", function(){
+    readFile(function(data){
+      var added = 0;
+      ["tasks","reminders","notes","assignments","sessions","filenames","filters","reviews","courses","cards","habits"].forEach(function(k){
+        if(!Array.isArray(data[k])) return;
+        var ids = {};
+        S[k].forEach(function(x){ ids[x.id] = 1; });
+        data[k].forEach(function(x){
+          if(x && x.id && !ids[x.id]){ S[k].push(x); added++; }
+        });
+      });
+      save(); renderAll();
+      toast("Merged " + added + " records", "ok");
+    });
+  });
+  var rp = $("btnImportReplace");
+  if(rp) rp.addEventListener("click", function(){
+    readFile(function(data){
+      var ok = window.confirm("Replace ALL current data with this backup? This cannot be undone.");
+      if(!ok) return;
+      S = Object.assign(fresh(), data);
+      if(!S.settings) S.settings = fresh().settings;
+      save(); applyTheme(); buildQueue(); planDate = today(); renderAll();
+      toast("Data replaced from backup", "ok");
+    });
+  });
+  var wp = $("btnWipe");
+  if(wp) wp.addEventListener("click", function(){
+    if(!window.confirm("Erase every task, note, card and grade stored in this browser?")) return;
+    if(!window.confirm("Last check — this cannot be undone.")) return;
+    S = fresh();
+    save(); applyTheme(); buildQueue(); planDate = today();
+    showView("dash");
+    toast("Everything erased", "ok");
+  });
+}
+
+/* ---------- focus buttons ---------- */
+function bindFocus(){
+  var segs = document.querySelectorAll("#pomoMode button");
+  for(var i=0;i<segs.length;i++){
+    segs[i].addEventListener("click", function(){ setMode(this.getAttribute("data-mode")); });
+  }
+  var st = $("btnStart");
+  if(st) st.addEventListener("click", togglePomo);
+  var ft = $("fmToggle");
+  if(ft) ft.addEventListener("click", togglePomo);
+  var rs = $("btnReset");
+  if(rs) rs.addEventListener("click", function(){ P.running = false; clearInterval(P.tick); P.tick = null; P.left = P.dur; paintPomo(); });
+  var sk = $("btnSkip");
+  if(sk) sk.addEventListener("click", function(){ completePomo(); });
+  var dt = $("distract");
+  if(dt) dt.addEventListener("input", function(){
+    S.settings.distract = dt.value; save();
+  });
+  $("fmClose").addEventListener("click", function(){ $("fm").classList.remove("on"); });
+}
+
+/* ---------- filters ---------- */
+function bindFilters(){
+  var rf = $("remFilter");
+  if(rf){
+    rf.addEventListener("click", function(e){
+      var b = e.target.closest("button[data-filter]");
+      if(!b) return;
+      remFilter = b.getAttribute("data-filter");
+      Array.prototype.forEach.call(rf.children, function(c){ c.classList.toggle("active", c === b); });
+      renderReminders();
+    });
+  }
+  var af = $("asFilter");
+  if(af){
+    af.addEventListener("click", function(e){
+      var b = e.target.closest("button[data-afilter]");
+      if(!b) return;
+      asFilter = b.getAttribute("data-afilter");
+      Array.prototype.forEach.call(af.children, function(c){ c.classList.toggle("active", c === b); });
+      renderAssignments();
+    });
+  }
+  var cf = $("cdFilter");
+  if(cf) cf.addEventListener("change", renderCards);
+  var mb = $("modalBg");
+  if(mb) mb.addEventListener("click", function(e){ if(e.target === mb) closeModal(); });
+  document.addEventListener("keydown", function(e){
+    if(e.key === "Escape"){ closeModal(); $("fm").classList.remove("on"); closeMenu(); }
+    if(e.key === "n" && (e.metaKey || e.ctrlKey)){ /* noop */ }
+  });
+}
+
+/* =========================================================
+   INIT
+   ========================================================= */
+function init(){
+  load();
+  applyTheme();
+  var dEl = $("taskDate"); if(dEl) dEl.value = today();
+  var sd = $("schedStart"); if(sd) sd.value = today();
+  var fd = $("fnDate"); if(fd) fd.value = today();
+  var ad = $("asDue"); if(ad) ad.value = addDays(today(), 7);
+  $("dashGreet").textContent = "Good morning.";
+  bindNotes(); bindFiles(); bindReviewGrades(); bindBackup(); bindFocus(); bindFilters();
+  setMode("work");
+  buildQueue();
+  renderAll();
+  showView("dash");
+  sttBanner();
+  checkAlerts();
+  setInterval(checkAlerts, 60000);
+  setInterval(function(){
+    // refresh relative "days left" labels without touching inputs
+    if(currentView === "dash" || currentView === "reminders") renderAll();
+  }, 300000);
+}
+
+if(document.readyState === "loading"){
+  document.addEventListener("DOMContentLoaded", init);
+} else {
+  init();
+}
+
+})();
+</script>
+</body>
+</html>
